@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
 export const metadata: Metadata = {
-  title: "Starter Project",
-  description: "A clean starting point for building your site.",
-  other: {
-    "codex-preview": "development",
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
+ title: "ConcertMatch – Euer nächstes Konzert",
+ description: "Findet Konzerte, die euch zusammen gefallen. Musikgeschmack vergleichen, Neues entdecken und gemeinsam entscheiden.",
+ icons: { icon: "/favicon.svg" },
+ robots: { index: true, follow: true },
 };
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
-    </html>
-  );
+export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
+ return <html lang="de"><body>{children}</body></html>;
 }
