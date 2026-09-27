@@ -76,3 +76,7 @@ Similarity is based on genres, so niche distinctions are imperfect. No AI model 
 Expired data is purged on subsequent service requests, not by a scheduled job. D1 request limits and caching bound provider usage; more traffic would benefit from further load testing and provider agreements.
 
 See [market research](docs/market-research.md) and [handoff](docs/handoff.md).
+
+## Hosting preference update
+
+The owner chose to avoid ChatGPT-branded hosting. No public deployment has occurred. Continue with the independent Cloudflare instructions in [docs/independent-hosting.md](docs/independent-hosting.md). Cloudflare account authorization is still required; visitors will not need an account. This supersedes the earlier Sites publishing instructions above.

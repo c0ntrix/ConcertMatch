@@ -9,3 +9,5 @@ Not verified: direct Spotify OAuth (no client ID configured), mobile-device test
 The operator supplied imprint details. Add any applicable legal-form, registration and VAT information before a commercial rollout. Review hosting contracts and data-processing arrangements.
 
 Next: gather feedback from real groups and improve artist similarity and local event coverage before adding social features.
+
+Hosting update: ChatGPT Sites publication was cancelled before deployment at the owner's request. The copied runtime secret was removed from Sites. Independent Cloudflare preparation is checked in; final deployment awaits the owner's provider choice and account authorization.
