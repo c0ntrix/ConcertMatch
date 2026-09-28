@@ -3,8 +3,10 @@ export async function GET(request: Request) {
   return api(request, async (ctx) => {
     await rate(ctx, "privacy", 10);
     const rows = await db()
-      .prepare("SELECT DISTINCT group_id as id FROM members WHERE owner=?")
-      .bind(ctx.owner)
+      .prepare(
+        "SELECT DISTINCT g.id FROM groups g JOIN members m ON m.group_id=g.id WHERE m.owner=? AND g.expires_at>?",
+      )
+      .bind(ctx.owner, Date.now())
       .all<{ id: string }>();
     const groups = await Promise.all(
       rows.results.map((r) => loadGroup(r.id, ctx.owner)),
@@ -28,6 +30,9 @@ export async function DELETE(request: Request) {
       db().prepare("DELETE FROM groups WHERE owner=?").bind(ctx.owner),
       db().prepare("DELETE FROM members WHERE owner=?").bind(ctx.owner),
       db().prepare("DELETE FROM oauth WHERE owner=?").bind(ctx.owner),
+      db()
+        .prepare("DELETE FROM cache WHERE key=?")
+        .bind("spotify-import:" + ctx.owner),
     ]);
     return { deleted: true };
   });

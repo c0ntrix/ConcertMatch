@@ -109,7 +109,10 @@ export async function body(request: Request) {
   const raw = await request.text();
   if (raw.length > 65536) throw new ApiError("Die Eingabe ist zu groß.", 413);
   try {
-    return JSON.parse(raw);
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new ApiError("Die Anfrage ist ungültig.");
+    return value;
   } catch {
     throw new ApiError("Die Anfrage ist ungültig.");
   }

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -173,21 +173,32 @@ export default function ConcertApp() {
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [visible, setVisible] = useState(15),
     [checkedAt, setCheckedAt] = useState("");
+  const [searchEpoch, setSearchEpoch] = useState(0);
+  const viewRevision = useRef(0);
+  const searchRevision = useRef(0);
   const loadState = useCallback(async (id?: string) => {
+    const revision = ++viewRevision.current;
+    searchRevision.current++;
+    setEvents([]);
+    setNotice("");
+    setCheckedAt("");
+    setSearching(false);
     try {
       const d = await api(
         "/api/state" + (id ? "?group=" + encodeURIComponent(id) : ""),
       );
+      if (revision !== viewRevision.current) return;
       setGroups(d.groups);
       setProviders(d.providers);
       setGroup(d.group);
+      setSearchEpoch((value) => value + 1);
       if (d.group) setPrefs(d.group.preferences);
       setLoadError("");
       return d;
     } catch (e) {
-      setLoadError((e as Error).message);
+      if (revision === viewRevision.current) setLoadError((e as Error).message);
     } finally {
-      setInitializing(false);
+      if (revision === viewRevision.current) setInitializing(false);
     }
   }, []);
   useEffect(() => {
@@ -249,46 +260,68 @@ export default function ConcertApp() {
     );
   }, [loadState]);
   const search = useCallback(async (g: Group) => {
+    const request = ++searchRevision.current;
+    const revision = viewRevision.current;
+    const isCurrent = () =>
+      request === searchRevision.current && revision === viewRevision.current;
+    setEvents([]);
+    setNotice("");
+    setCheckedAt("");
     setSearching(true);
     setError("");
     setVisible(15);
     try {
       const d = await api("/api/concerts?group=" + g.id);
+      if (!isCurrent()) return;
       setEvents(d.events);
       setNotice(d.notice || "");
       setCheckedAt(d.checkedAt || "");
     } catch (e) {
+      if (!isCurrent()) return;
       setError((e as Error).message);
       setEvents([]);
     } finally {
-      setSearching(false);
+      if (isCurrent()) setSearching(false);
     }
   }, []);
   const groupId = group?.id;
   const prefsKey = group ? JSON.stringify(group.preferences) : "";
   useEffect(() => {
     if (group) void search(group);
-  }, [groupId, prefsKey, search]);
+    return () => {
+      searchRevision.current++;
+    };
+  }, [groupId, prefsKey, searchEpoch, search]);
   useEffect(() => {
     if (!groupId) return;
+    let active = true;
+    const revision = viewRevision.current;
     const refresh = () => {
       if (document.visibilityState !== "visible") return;
       void api("/api/groups/" + groupId)
-        .then((d) => setGroup(d.group))
+        .then((d) => {
+          if (active && revision === viewRevision.current)
+            setGroup((current) =>
+              current?.id === groupId ? d.group : current,
+            );
+        })
         .catch(() => {});
     };
     const timer = setInterval(refresh, 30000);
     window.addEventListener("focus", refresh);
     return () => {
+      active = false;
       clearInterval(timer);
       window.removeEventListener("focus", refresh);
     };
-  }, [groupId]);
+  }, [groupId, searchEpoch]);
   async function action(input: unknown) {
     if (!group) return;
+    const revision = viewRevision.current;
     setBusy(true);
     try {
       const d = await api("/api/groups/" + group.id, input);
+      if (revision !== viewRevision.current) return;
       if (d.group) setGroup(d.group);
       return d;
     } catch (e) {
@@ -402,6 +435,13 @@ export default function ConcertApp() {
     await loadState(id);
   }
   function reset() {
+    viewRevision.current++;
+    searchRevision.current++;
+    setEvents([]);
+    setNotice("");
+    setCheckedAt("");
+    setSearching(false);
+    setLoadError("");
     setGroup(null);
     setProfiles([emptyProfile("Du"), emptyProfile("Person 2")]);
     setPrefs(defaultPreferences());
