@@ -1072,3 +1072,68 @@ img {
 .import-steps a {
   text-decoration: underline;
 }
+
+.artist-result {
+  min-height: 52px;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.artist-result strong {
+  display: block;
+  font-weight: 550;
+}
+.artist-result small {
+  display: block;
+  color: #73736c;
+  font-size: 12px;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.artist-search-status {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #65665e;
+  line-height: 1.5;
+}
+.artist-help,
+.import-extra {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #62645b;
+}
+.artist-help summary,
+.import-extra summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 5px 0;
+}
+.artist-help p {
+  line-height: 1.65;
+  margin: 12px 0;
+}
+.artist-help a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.artist-help label {
+  display: block;
+  color: #30352b;
+  margin: 16px 0 8px;
+}
+.artist-help textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d5d8ce;
+  border-radius: 5px;
+  background: #fffefb;
+  font: inherit;
+  resize: vertical;
+}
+.artist-help textarea:focus-visible {
+  outline: 2px solid #6f7b5e;
+  outline-offset: 2px;
+}
+.import-extra {
+  font-size: 12px;
+  color: #77796f;
+}

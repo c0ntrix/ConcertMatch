@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { ARTISTS, GENRES, normalize } from "@/lib/catalog";
 import type { Artist } from "@/lib/types";
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/combobox";
 import HistoryImport from "./history-import";
 import { Checkbox } from "@/components/ui/checkbox";
+import { sameArtist } from "@/lib/matching";
+import ArtistListImport from "./artist-list-import";
 export type ProfileDraft = {
   name: string;
   artists: Artist[];
@@ -33,39 +35,83 @@ export default function ProfileEditor({
 }) {
   const id = useId();
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const [remote, setRemote] = useState<Artist[]>([]);
-  const [revision, setRevision] = useState(0);
+  const input = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [searchNotice, setSearchNotice] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [added, setAdded] = useState("");
   useEffect(() => {
+    setRemote([]);
+    setSearchError("");
+    setSearchNotice("");
     if (query.trim().length < 2) {
-      setRemote([]);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     const ac = new AbortController();
     const t = setTimeout(
       () =>
         fetch("/api/artists?q=" + encodeURIComponent(query), {
           signal: ac.signal,
         })
-          .then((r) => r.json() as Promise<{ artists?: Artist[] }>)
-          .then((d) => setRemote(d.artists || []))
-          .catch(() => {}),
-      300,
+          .then(async (r) => {
+            const d = (await r.json()) as {
+              artists: Artist[];
+              notice?: string;
+              error?: string;
+            };
+            if (!r.ok)
+              throw new Error(
+                d.error || "Die Suche ist gerade nicht erreichbar.",
+              );
+            return d as { artists: Artist[]; notice?: string };
+          })
+          .then((d) => {
+            if (!ac.signal.aborted) {
+              setRemote(d.artists);
+              setSearchNotice(d.notice || "");
+            }
+          })
+          .catch((e) => {
+            if (!ac.signal.aborted) setSearchError(e.message);
+          })
+          .finally(() => {
+            if (!ac.signal.aborted) setLoading(false);
+          }),
+      450,
     );
     return () => {
       clearTimeout(t);
       ac.abort();
     };
-  }, [query]);
-  const options = [...ARTISTS, ...remote].filter(
-    (a, i, arr) =>
-      arr.findIndex((b) => normalize(a.name) === normalize(b.name)) === i &&
-      !value.artists.some((b) => normalize(a.name) === normalize(b.name)),
+  }, [query, retry]);
+  const local = ARTISTS.filter(
+    (a) =>
+      normalize(a.name).includes(normalize(query)) &&
+      !remote.some((b) => normalize(a.name) === normalize(b.name)),
   );
+  const options = [...remote, ...local]
+    .filter(
+      (a, i, arr) =>
+        arr.findIndex((b) => a.id === b.id) === i &&
+        !value.artists.some((b) => sameArtist(a, b)),
+    )
+    .slice(0, query ? 20 : 6);
   function add(a: Artist) {
-    if (value.artists.length >= 50) return;
+    if (
+      value.artists.length >= 50 ||
+      value.artists.some((b) => sameArtist(a, b))
+    )
+      return;
     onChange({ ...value, artists: [...value.artists, a] });
     setQuery("");
-    setRevision((n) => n + 1);
+    setOpen(true);
+    setAdded(a.name + " hinzugefügt. Du kannst direkt weitersuchen.");
+    input.current?.focus();
   }
   return (
     <div className="profile-editor">
@@ -110,17 +156,35 @@ export default function ProfileEditor({
           ))}
         </div>
         <Combobox
-          key={revision}
-          items={options.map((a) => a.name)}
-          value={null}
-          onValueChange={(name) => {
-            const a = options.find((a) => a.name === name);
+          multiple
+          open={open}
+          onOpenChange={(next, details) => {
+            if (!next && details.reason === "item-press") {
+              details.cancel();
+              return;
+            }
+            setOpen(next);
+          }}
+          items={options}
+          value={[] as Artist[]}
+          inputValue={query}
+          filter={null}
+          itemToStringLabel={(a: Artist) => a.name}
+          isItemEqualToValue={(a: Artist, b: Artist) => a.id === b.id}
+          onValueChange={(items: Artist[]) => {
+            const a = items[items.length - 1];
             if (a) add(a);
           }}
-          onInputValueChange={setQuery}
+          onInputValueChange={(text, details) => {
+            setQuery(text);
+            if (details.reason === "input-change") setOpen(true);
+          }}
         >
           <ComboboxInput
+            ref={input}
             id={id}
+            maxLength={100}
+            disabled={value.artists.length >= 50}
             aria-label={"Lieblingskünstler für " + value.name}
             placeholder={
               value.artists.length
@@ -130,19 +194,67 @@ export default function ProfileEditor({
             showTrigger={false}
           />
           <ComboboxContent>
+            {loading && (
+              <p className="artist-search-status" role="status">
+                Musikkatalog wird durchsucht …
+              </p>
+            )}
+            {searchError && (
+              <div className="artist-search-status" role="alert">
+                {searchError}{" "}
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => setRetry((n) => n + 1)}
+                >
+                  Erneut versuchen
+                </button>
+              </div>
+            )}
             <ComboboxEmpty>
-              Kein Vorschlag. Du kannst den Namen unten selbst hinzufügen.
+              {loading
+                ? ""
+                : "Kein weiterer Treffer. Du kannst den Namen auch selbst hinzufügen."}
             </ComboboxEmpty>
             <ComboboxList>
-              {(name: string) => (
-                <ComboboxItem key={name} value={name}>
-                  {name}
+              {(artist: Artist) => (
+                <ComboboxItem
+                  key={artist.id}
+                  value={artist}
+                  className="artist-result"
+                >
+                  <span>
+                    <strong>{artist.name}</strong>
+                    <small>
+                      {[
+                        artist.description,
+                        artist.genres.slice(0, 2).join(" · "),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Künstler / Band"}
+                    </small>
+                  </span>
+                  <Plus size={15} aria-hidden="true" />
                 </ComboboxItem>
               )}
             </ComboboxList>
+            {searchNotice && (
+              <p className="artist-search-status">{searchNotice}</p>
+            )}
           </ComboboxContent>
         </Combobox>
+        <span className="sr-only" role="status">
+          {added}
+        </span>
+        {value.artists.length >= 50 && (
+          <p className="small-note">
+            50 Künstler ausgewählt. Entferne einen, um einen anderen
+            hinzuzufügen.
+          </p>
+        )}
         {query.trim().length >= 2 &&
+          !loading &&
+          !options.some((a) => normalize(a.name) === normalize(query)) &&
           !value.artists.some(
             (a) => normalize(a.name) === normalize(query),
           ) && (
@@ -199,9 +311,35 @@ export default function ProfileEditor({
             </div>
           </details>
         )}
-        <HistoryImport
-          onImport={(artists) => onChange({ ...value, artists })}
+        <ArtistListImport
+          onImport={(artists) =>
+            onChange({
+              ...value,
+              artists: [
+                ...value.artists,
+                ...artists.filter(
+                  (a) => !value.artists.some((b) => sameArtist(a, b)),
+                ),
+              ].slice(0, 50),
+            })
+          }
         />
+        <details className="import-extra">
+          <summary>Du hast schon einen Spotify-Datenexport?</summary>
+          <HistoryImport
+            onImport={(artists) =>
+              onChange({
+                ...value,
+                artists: [
+                  ...value.artists,
+                  ...artists.filter(
+                    (a) => !value.artists.some((b) => sameArtist(a, b)),
+                  ),
+                ].slice(0, 50),
+              })
+            }
+          />
+        </details>
         {spotify && (
           <a
             className="text-link spotify-link"

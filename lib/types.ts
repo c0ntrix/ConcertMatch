@@ -3,6 +3,10 @@ export type Artist = {
   name: string;
   genres: string[];
   url?: string;
+  mbid?: string;
+  aliases?: string[];
+  description?: string;
+  listeners?: number;
 };
 export type Member = {
   id: string;
@@ -29,6 +33,7 @@ export type Concert = {
   source: string;
   checkedAt: string;
   status: string;
+  providerRank?: number;
 };
 export type Preferences = {
   city: string;

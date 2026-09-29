@@ -221,6 +221,10 @@ export async function loadGroup(id: string, owner: string): Promise<Group> {
   };
 }
 export const artistSchema = z.object({
+  mbid: z.string().uuid().optional(),
+  aliases: z.array(z.string().max(100)).max(12).optional(),
+  description: z.string().max(180).optional(),
+  listeners: z.number().int().nonnegative().optional(),
   id: z.string().min(1).max(150),
   name: z.string().trim().min(1).max(100),
   genres: z.array(z.string().max(60)).max(12),

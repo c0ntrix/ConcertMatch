@@ -127,7 +127,7 @@ export const normalize = (s: string) =>
     .toLocaleLowerCase("de")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^\p{L}\p{N}]/gu, "");
 export const ARTISTS: Artist[] = entries.map(([name, genres]) => ({
   id: "catalog:" + normalize(name),
   name,
