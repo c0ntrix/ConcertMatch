@@ -17,7 +17,7 @@ import { toast, Toaster } from "sonner";
 import ProfileEditor, { type ProfileDraft } from "./profile-editor";
 import { CITIES, defaultPreferences } from "@/lib/catalog";
 import { matchConcert, rankConcerts } from "@/lib/matching";
-import type { Concert, Group, Match, Preferences } from "@/lib/types";
+import type { Artist, Concert, Group, Match, Preferences } from "@/lib/types";
 import {
   Combobox,
   ComboboxInput,
@@ -76,6 +76,7 @@ async function api(path: string, body?: unknown, method = "POST") {
     providers: ProviderState;
     artists: import("@/lib/types").Artist[];
     events: Concert[];
+    artistMetadata?: Artist[];
     notice?: string;
     checkedAt?: string;
     invite?: string;
@@ -149,6 +150,7 @@ export default function ConcertApp() {
     emptyProfile("Person 2"),
   ]);
   const [prefs, setPrefs] = useState<Preferences>(defaultPreferences);
+  const [artistMetadata, setArtistMetadata] = useState<Artist[]>([]);
   const [providers, setProviders] = useState<ProviderState>({
     ticketmaster: false,
     spotify: false,
@@ -274,6 +276,7 @@ export default function ConcertApp() {
       const d = await api("/api/concerts?group=" + g.id);
       if (!isCurrent()) return;
       setEvents(d.events);
+      setArtistMetadata(d.artistMetadata || []);
       setNotice(d.notice || "");
       setCheckedAt(d.checkedAt || "");
     } catch (e) {
@@ -286,12 +289,15 @@ export default function ConcertApp() {
   }, []);
   const groupId = group?.id;
   const prefsKey = group ? JSON.stringify(group.preferences) : "";
+  const tasteKey = group
+    ? JSON.stringify(group.members.map((m) => [m.id, m.artists, m.genres]))
+    : "";
   useEffect(() => {
     if (group) void search(group);
     return () => {
       searchRevision.current++;
     };
-  }, [groupId, prefsKey, searchEpoch, search]);
+  }, [groupId, prefsKey, tasteKey, searchEpoch, search]);
   useEffect(() => {
     if (!groupId) return;
     let active = true;
@@ -411,9 +417,19 @@ export default function ConcertApp() {
     ]);
     setEdit(true);
   }
+  const matchingMembers = useMemo(() => {
+    const metadata = new Map(artistMetadata.map((a) => [a.id, a]));
+    return (
+      group?.members.map((m) => ({
+        ...m,
+        artists: m.artists.map((a) => metadata.get(a.id) || a),
+      })) || []
+    );
+  }, [group, artistMetadata]);
   const ranked = useMemo(
-    () => (group ? rankConcerts(events, group.members, group.preferences) : []),
-    [events, group],
+    () =>
+      group ? rankConcerts(events, matchingMembers, group.preferences) : [],
+    [events, group, matchingMembers],
   );
   const shown = useMemo(
     () =>
@@ -421,12 +437,12 @@ export default function ConcertApp() {
         ? []
         : tab === "saved"
           ? group.saved.map((c) =>
-              matchConcert(c, group.members, group.preferences),
+              matchConcert(c, matchingMembers, group.preferences),
             )
           : tab === "discovery"
             ? ranked.filter((m) => m.discovery)
             : ranked,
-    [ranked, group, tab],
+    [ranked, group, tab, matchingMembers],
   );
   async function changeGroup(id: string) {
     setInvite("");

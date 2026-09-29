@@ -5,6 +5,6 @@ export async function GET(request: Request) {
     await rate(ctx, "concerts", 12);
     const id = new URL(request.url).searchParams.get("group") || "";
     const group = await loadGroup(id, ctx.owner);
-    return searchConcerts(group.preferences);
+    return searchConcerts(group.preferences, group.members);
   });
 }
