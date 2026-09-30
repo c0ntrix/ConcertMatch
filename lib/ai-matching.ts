@@ -1,3 +1,8 @@
+import {
+  inferenceCharge,
+  INFERENCE_RESERVATION,
+  type InferenceUsage,
+} from "./ai-budget";
 import { ZodError } from "zod";
 import { env } from "cloudflare:workers";
 import { db, cached, hash } from "./server";
@@ -29,7 +34,7 @@ export async function recommendConcerts(
   if (!input.lineups.length)
     return { mode: "ai" as const, recommendations: {}, notice: "" };
   const key =
-    `recommendations:${group.id}:` + (await hash("v3:" + input.content));
+    `recommendations:${group.id}:` + (await hash("v4:" + input.content));
   const hit = await cached<ReturnType<typeof parseRecommendations>>(key);
   if (hit)
     return {
@@ -53,7 +58,7 @@ export async function recommendConcerts(
   if (!lease) return fallback;
   // At most 15 KB data + system prompt, 3000 output tokens. Reserve well above
   // that model's worst-case token charge; refund only when usage is reported.
-  const reservation = 1500;
+  const reservation = INFERENCE_RESERVATION;
   const day = Math.floor(now / 86400000);
   const dayKey = "ai:day:" + day;
   const budget = await db()
@@ -67,7 +72,11 @@ export async function recommendConcerts(
       .prepare("DELETE FROM rate_limits WHERE key=?")
       .bind(leaseKey)
       .run();
-    return fallback;
+    return {
+      ...fallback,
+      notice:
+        "Das Tageskontingent für die vertiefte Musikeinschätzung ist aufgebraucht. Die Ergebnisse verwenden Favoriten und Musikstile. Es wird täglich um 00:00 UTC erneuert.",
+    };
   }
   try {
     const output = await env.AI.run(
@@ -85,20 +94,15 @@ export async function recommendConcerts(
     );
     const envelope = output as {
       response?: unknown;
-      usage?: { neurons?: number };
+      usage?: InferenceUsage;
     };
-    const rows = parseRecommendations(envelope.response, input);
-    const used = envelope.usage?.neurons;
-    if (
-      typeof used === "number" &&
-      Number.isFinite(used) &&
-      used > 0 &&
-      used < reservation
-    )
+    const charge = inferenceCharge(envelope.usage);
+    if (charge < reservation)
       await db()
         .prepare("UPDATE rate_limits SET count=max(0,count-?) WHERE key=?")
-        .bind(Math.max(0, reservation - Math.ceil(used * 1.25)), dayKey)
+        .bind(reservation - charge, dayKey)
         .run();
+    const rows = parseRecommendations(envelope.response, input);
     // Store only if this exact set of profiles still exists. This prevents an
     // in-flight response from recreating a cache after profile/data deletion.
     const snapshot = group.members.map((m) => [
