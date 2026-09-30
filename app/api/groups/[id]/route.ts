@@ -53,12 +53,21 @@ export async function POST(
           })
           .parse(input);
         const owned = await db()
-          .prepare("SELECT id FROM members WHERE group_id=? AND owner=?")
+          .prepare(
+            "SELECT id,artists,genres FROM members WHERE group_id=? AND owner=?",
+          )
           .bind(id, ctx.owner)
-          .all<{ id: string }>();
+          .all<{ id: string; artists: string; genres: string }>();
         const ids = new Set(owned.results.map((m) => m.id));
         if (selected.profiles.some((p) => !ids.has(p.memberId)))
           throw new ApiError("Du kannst nur eigene Profile bearbeiten.", 403);
+        const changedTaste = selected.profiles.some(({ memberId, profile }) => {
+          const previous = owned.results.find((m) => m.id === memberId)!;
+          return (
+            previous.artists !== JSON.stringify(profile.artists) ||
+            previous.genres !== JSON.stringify(profile.genres)
+          );
+        });
         // One transaction preserves group/member identities, invitations, saves and votes.
         await db().batch([
           ...selected.profiles.map(({ memberId, profile: p }) =>
@@ -78,9 +87,13 @@ export async function POST(
           db()
             .prepare("UPDATE groups SET preferences=? WHERE id=?")
             .bind(JSON.stringify(selected.preferences), id),
-          db()
-            .prepare("DELETE FROM cache WHERE instr(key,?)=1")
-            .bind("recommendations:" + id + ":"),
+          ...(changedTaste
+            ? [
+                db()
+                  .prepare("DELETE FROM cache WHERE instr(key,?)=1")
+                  .bind("recommendations:" + id + ":"),
+              ]
+            : []),
         ]);
         break;
       }
