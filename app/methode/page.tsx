@@ -76,11 +76,12 @@ export default function Methode() {
       <p>
         Bei vergleichbarer musikalischer Passung bevorzugen wir bekannte Acts.
         Dafür verwenden wir verfügbare Hörerzahlen der ListenBrainz-Community
-        ohne Sonderbonus für einzelne Künstlerlisten. Dieser Sortierbonus
-        beträgt höchstens 12 Punkte und verändert die angezeigten Matchpunkte
-        nicht. Eine deutlich passendere kleine Band kann deshalb vor einem
-        großen Act stehen. Ohne musikalische Gemeinsamkeit wird ein Termin nicht
-        allein wegen seiner Bekanntheit empfohlen.
+        des zuerst angekündigten Acts ohne Sonderbonus für einzelne
+        Künstlerlisten. Dieser Sortierbonus beträgt höchstens 20 Punkte und
+        verändert die angezeigten Matchpunkte nicht. Eine deutlich passendere
+        kleine Band kann deshalb vor einem großen Act stehen. Ohne musikalische
+        Gemeinsamkeit wird ein Termin nicht allein wegen seiner Bekanntheit
+        empfohlen.
       </p>
       <p>
         Die Hörerzahlen sind keine weltweiten Spotify-Zahlen. Unbekannte Werte
@@ -127,8 +128,13 @@ export default function Methode() {
         vollständig abgedeckt. Bei sehr vielen Terminen berücksichtigen wir bis
         zu 800 nach Ticketmaster-Relevanz sortierte Termine im gewählten
         Zeitraum. Zusätzlich suchen wir gezielt nach bis zu acht Favoriten,
-        abwechselnd aus euren Profilen. Die Auswahl bleibt begrenzt; fehlende
-        Treffer bedeuten nicht, dass es keine Tour gibt.
+        abwechselnd aus euren Profilen. Zusätzlich laden wir bis zu 600 Termine
+        für jede der drei am besten vertretenen Musikrichtungen eurer Gruppe.
+        Dadurch verdrängen große allgemeine Kategorien nicht alle passenden
+        Acts. Tourtermine erscheinen gemeinsam in einem Treffer: Über „Termine &
+        Orte“ wählt ihr den konkreten Termin für Tickets und Merkliste. Die
+        Auswahl bleibt begrenzt; fehlende Treffer bedeuten nicht, dass es keine
+        Tour gibt.
       </p>
       <p>
         Entfernungen sind Luftlinien ab dem Zentrum des gewählten Startorts,

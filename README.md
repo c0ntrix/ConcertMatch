@@ -9,12 +9,13 @@ Concerts your whole group can agree on. A German-language web app for 2–8 peop
 - Global MusicBrainz artist search with partial names, keyboard selection, editable profiles and bulk list entry. Apple iTunes provides a secondary catalogue during outages.
 - Spotify standard and extended listening-history JSON import, processed entirely in the browser. Up to 30 artists ranked by listening time; no raw history upload.
 - Live Ticketmaster concerts across borders within up to 1,000 km, date/budget filters and explainable group ranking.
+- Tour dates grouped into one result, with a choice of real dates/venues; tickets, saves and votes always use the selected event.
 - Private invitation links, persistent groups, shared shortlists and per-person votes.
 - Return to the prefilled start form to change your selection without losing the group or shortlist; start a separate group whenever needed.
 - Calendar downloads, profile export/deletion and a 90-day group lifetime.
 - Optional Spotify PKCE top-artists import, hidden until configured.
 
-The group score is **65% minimum individual score + 35% average**. A favorite scores 100. Genre inference combines the best artist-to-favorite connection (60%) with the average across the person’s whole selection (40%); peripheral tags are capped and support-act evidence is discounted. The initial genre results are refined by Llama 3.3 on Cloudflare Workers AI, which assesses musical proximity for each person using verified candidate lineups. Inferred scores run from 0–92; uncertain knowledge is capped at 45. Public ListenBrainz audience counts add up to 12 sorting points. Scores are not calibrated probabilities or audio analysis.
+The group score is **65% minimum individual score + 35% average**. A favorite scores 100. Genre inference combines the best artist-to-favorite connection (60%) with the average across the person’s whole selection (40%); peripheral tags are capped and support-act evidence is discounted. The initial genre results are refined by Llama 3.3 on Cloudflare Workers AI, which assesses musical proximity for each person using verified candidate lineups. Inferred scores run from 0–92; uncertain knowledge is capped at 45. Public ListenBrainz audience counts for the first billed act add up to 20 sorting points. Scores are not calibrated probabilities or audio analysis.
 
 ## Local development
 
@@ -74,7 +75,7 @@ Anonymous browser capabilities are HttpOnly/SameSite cookies; stored values are 
 
 ## Current limits
 
-Ticketmaster is not a complete gig catalogue. Up to 800 provider-relevant events per area query plus targeted searches for up to eight favorites, interleaved across profiles; predefined German departure cities. Nearby concerts in other countries are included. Distances are straight-line from the selected city centre, not a personal address or travel time. Same-city results show the city instead of misleading small kilometre figures. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
+Ticketmaster is not a complete gig catalogue. Up to 800 provider-relevant events per area query plus up to 600 events in each of the group’s three leading music families and targeted searches for up to eight favorites, interleaved across profiles; predefined German departure cities. Nearby concerts in other countries are included. Distances are straight-line from the selected city centre, not a personal address or travel time. Same-city results show the city instead of misleading small kilometre figures. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
 
 Model reasoning can be wrong, especially for niche or ambiguous names. Up to 20 favorites per person and 180 distinct candidate lineups are sent, with a 15 KB input cap that can reduce those counts; the model assesses up to 16 lineups. Actual event dates and availability come from Ticketmaster. No model is trained on listening data. OAuth and history-imported favorites can be manually corrected.
 

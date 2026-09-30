@@ -61,6 +61,7 @@ export type Group = {
   expiresAt: number;
 };
 export type Match = {
+  alternatives?: Match[];
   concert: Concert;
   score: number;
   distance: number;

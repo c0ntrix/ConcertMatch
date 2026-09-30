@@ -15,7 +15,12 @@ import {
 import { toast, Toaster } from "sonner";
 import ProfileEditor, { type ProfileDraft } from "./profile-editor";
 import { CITIES, defaultPreferences } from "@/lib/catalog";
-import { distanceLabel, matchConcert, rankConcerts } from "@/lib/matching";
+import {
+  distanceLabel,
+  groupTourMatches,
+  matchConcert,
+  rankConcerts,
+} from "@/lib/matching";
 import type {
   Artist,
   Concert,
@@ -538,7 +543,7 @@ export default function ConcertApp() {
                 recommendations,
               ),
             )
-          : ranked,
+          : groupTourMatches(ranked),
     [ranked, group, tab, matchingMembers, recommendations],
   );
   async function changeGroup(id: string) {
@@ -1216,7 +1221,7 @@ export default function ConcertApp() {
   );
 }
 function ConcertRow({
-  match: m,
+  match: result,
   group,
   busy,
   onAction,
@@ -1226,6 +1231,11 @@ function ConcertRow({
   busy: boolean;
   onAction: (v: unknown) => Promise<unknown>;
 }) {
+  const [selectedDate, setSelectedDate] = useState(result.concert.id);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const m =
+    result.alternatives?.find((date) => date.concert.id === selectedDate) ||
+    result;
   const [detail, setDetail] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const c = m.concert;
@@ -1300,6 +1310,56 @@ function ConcertRow({
               : "Preis beim Anbieter"}
           </span>
         </div>
+        {result.alternatives && (
+          <div className="tour-dates">
+            <button
+              className="text-link tour-dates-toggle"
+              aria-expanded={datesOpen}
+              onClick={() => setDatesOpen(!datesOpen)}
+            >
+              {result.alternatives.length} Termine & Orte{" "}
+              <ChevronDown size={14} />
+            </button>
+            {datesOpen && (
+              <div
+                className="tour-date-options"
+                role="group"
+                aria-label={"Termin für " + c.artists[0]?.name + " auswählen"}
+              >
+                {result.alternatives.map((date) => (
+                  <button
+                    key={date.concert.id}
+                    aria-pressed={c.id === date.concert.id}
+                    onClick={() => {
+                      setSelectedDate(date.concert.id);
+                      setImageFailed(false);
+                    }}
+                  >
+                    <span>
+                      {date.concert.city} ·{" "}
+                      {new Date(
+                        date.concert.date + "T12:00:00Z",
+                      ).toLocaleDateString("de-DE", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "UTC",
+                      })}
+                      {date.concert.time
+                        ? " · " + date.concert.time.slice(0, 5)
+                        : ""}
+                    </span>
+                    <small>
+                      {date.concert.venue} ·{" "}
+                      {distanceLabel(date, group.preferences)}
+                      {date.concert.id === c.id ? " · Ausgewählt" : ""}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <button
         className={"bookmark-button " + (saved ? "saved" : "")}

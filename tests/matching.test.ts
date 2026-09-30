@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   affinity,
+  groupTourMatches,
   distanceLabel,
   matchConcert,
   rankConcerts,
@@ -215,4 +216,77 @@ test("same-city labels do not imply distance from a personal location", () => {
     distance: 257,
   };
   assert.equal(distanceLabel(other, p), "ca. 257 km Luftlinie");
+});
+
+test("tour dates occupy one result while retaining the nearest actual ticket, save and vote IDs", () => {
+  const act = artist("Touring artist", ["emo rap"]);
+  const near = concert(act, {
+    id: "near",
+    title: "Touring artist - World Tour",
+    date: p.to,
+    lat: p.lat,
+  });
+  const far = { ...near, id: "far", lat: p.lat + 0.1, date: p.from };
+  const ranked = rankConcerts([far, near], members, p);
+  const tours = groupTourMatches(ranked);
+  assert.equal(tours.length, 1);
+  assert.equal(tours[0].concert.id, "near");
+  assert.deepEqual(
+    tours[0].alternatives?.map((m) => m.concert.id),
+    ["near", "far"],
+  );
+  assert.equal(ranked.length, 2);
+});
+test("different programmes and artists are not merged into a tour", () => {
+  const act = artist("Artist A", ["emo rap"]);
+  const differentAct = artist("Artist B", ["emo rap"]);
+  const shows = [
+    concert(act, { id: "tour", title: "World Tour" }),
+    concert(act, { id: "acoustic", title: "Acoustic Night", time: "22:00:00" }),
+    concert(differentAct, { title: "World Tour" }),
+  ];
+  assert.equal(groupTourMatches(rankConcerts(shows, members, p)).length, 3);
+});
+test("audience weighting distinguishes large acts without elevating unrelated music or overriding shared favorites", () => {
+  const small = concert(artist("Small act", ["hip hop"], 50));
+  const large = concert(artist("Large act", ["hip hop"], 100000));
+  assert.equal(
+    rankConcerts([small, large], members, p)[0].concert.id,
+    large.id,
+  );
+  const massive = concert(artist("Massive inferred act", ["emo rap"], 1000000));
+  const shared = members.map((m) => ({ ...m, artists: [juice] }));
+  assert.equal(
+    rankConcerts([massive, concert(juice)], shared, p)[0].score,
+    100,
+  );
+});
+
+test("international title variations and changing support acts do not split ordinary tour dates", () => {
+  const main = artist("Tour artist", ["emo rap"]);
+  const shows = [
+    concert(main, { id: "full", title: "TOUR ARTIST: THE WORLD TOUR" }),
+    concert(main, {
+      id: "short",
+      title: "Tour artist",
+      time: "22:00:00",
+      artists: [main, artist("Support", ["hip hop"])],
+    }),
+  ];
+  const tours = groupTourMatches(rankConcerts(shows, members, p));
+  assert.equal(tours.length, 1);
+  assert.equal(tours[0].alternatives?.length, 2);
+});
+test("premium ticket variants and fan celebrations do not masquerade as separate live concerts", () => {
+  const shows = [
+    concert(juice),
+    concert(juice, { id: "premium", title: "Artist - Venue Premium Tickets" }),
+    concert(juice, { id: "package", title: "Artist Tour | VIP Packages" }),
+    concert(juice, { id: "party", title: "Artist 30TH BIRTHDAY CELEBRATION" }),
+    concert(juice, { id: "listen", title: "Artist Album Listening Party" }),
+  ];
+  assert.deepEqual(
+    deduplicateConcerts(shows).map((c) => c.id),
+    [juice.id],
+  );
 });

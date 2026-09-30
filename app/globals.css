@@ -1155,3 +1155,40 @@ img {
   font-size: 0.75rem;
   margin-top: 8px;
 }
+
+.tour-dates {
+  margin-top: 12px;
+}
+.tour-dates-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.tour-date-options {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.tour-date-options button {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+.tour-date-options button[aria-pressed="true"] {
+  background: #edf0e7;
+  border-color: #aab79b;
+}
+.tour-date-options button:hover {
+  background: #f1f3ed;
+}
+.tour-date-options small {
+  display: block;
+  margin-top: 4px;
+  color: #707a61;
+  font-size: 0.72rem;
+}

@@ -1,3 +1,9 @@
+import {
+  discoveryGenres,
+  musicGenres,
+  type ClassificationCatalogue,
+  type ProviderGenre,
+} from "./discovery-plan";
 import type { Artist, Concert, Member, Preferences } from "./types";
 import { normalize } from "./catalog";
 import { enrichArtists } from "./music-catalog";
@@ -256,12 +262,74 @@ async function nearbyConcerts(p: Preferences) {
   const notice = partial
     ? "Ein Teil der Konzertdaten konnte nicht geladen werden. Die angezeigte Auswahl ist unvollständig."
     : total > 800
-      ? "Auswahl aus den 800 von Ticketmaster als relevant eingestuften Terminen in eurem Umkreis, ergänzt um gezielte Suchen nach euren Favoriten. Nicht alle Konzerte sind enthalten."
+      ? "Auswahl aus den 800 von Ticketmaster als relevant eingestuften Terminen in eurem Umkreis, ergänzt um gezielte Suchen nach euren Favoriten und Musikrichtungen. Nicht alle Konzerte sind enthalten."
       : "Aus dem Ticketmaster-Katalog. Nicht alle Veranstalter und Clubs sind enthalten.";
   const result = { events, notice, checkedAt };
   await putCache(cacheKey, result, partial ? 60000 : 15 * 60000);
   return result;
 }
+// Partition discovery by the group's main music families, so a large radius
+// does not let the global 800-event page hide all relevant touring artists.
+async function focusedConcerts(p: Preferences, members: Member[]) {
+  let catalogue = await cached<ProviderGenre[]>("tm:music-genres:v1");
+  if (!catalogue) {
+    catalogue = musicGenres(
+      await tm<ClassificationCatalogue>("classifications.json", {
+        locale: "en-us",
+      }),
+    );
+    if (catalogue.length)
+      await putCache("tm:music-genres:v1", catalogue, 7 * 86400000);
+  }
+  const events: Concert[] = [];
+  let partial = false;
+  const today = new Date().toISOString().slice(0, 10);
+  for (const genre of discoveryGenres(members, catalogue)) {
+    const query = {
+      geoPoint: geoHash(p.lat, p.lng),
+      radius: String(p.radius),
+      unit: "km",
+      genreId: genre.id,
+      startDateTime: (p.from < today ? today : p.from) + "T00:00:00Z",
+      endDateTime: p.to + "T23:59:59Z",
+      size: "200",
+      sort: "relevance,desc",
+      locale: "*",
+    };
+    const key = "focused:v1:" + JSON.stringify(query);
+    let hits = await cached<{ events: Concert[]; partial: boolean }>(key);
+    if (!hits) {
+      const found: Concert[] = [];
+      let pages = 1,
+        incomplete = false;
+      const checkedAt = new Date().toISOString();
+      for (let page = 0; page < Math.min(pages, 3); page++) {
+        try {
+          const data = await tm<{
+            _embedded?: { events: Event[] };
+            page?: { totalPages: number };
+          }>("events.json", { ...query, page: String(page) });
+          pages = data.page?.totalPages || 1;
+          for (const raw of data._embedded?.events || []) {
+            const event = parseEvent(raw, checkedAt);
+            if (event && !found.some((e) => e.id === event.id))
+              found.push({ ...event, providerRank: page * 200 + found.length });
+          }
+        } catch {
+          incomplete = true;
+          break;
+        }
+      }
+      hits = { events: found, partial: incomplete };
+      await putCache(key, hits, incomplete ? 60000 : 15 * 60000);
+    }
+    partial ||= hits.partial;
+    for (const event of hits.events)
+      if (!events.some((e) => e.id === event.id)) events.push(event);
+  }
+  return { events, partial };
+}
+
 export async function findConcert(id: string) {
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id))
     throw new ApiError("Ungültige Konzert-ID.");
@@ -345,6 +413,14 @@ export async function searchConcerts(
         ),
       ),
   );
+  try {
+    const focused = await focusedConcerts(p, profiles);
+    partial ||= focused.partial;
+    for (const event of focused.events)
+      if (!events.some((e) => e.id === event.id)) events.push(event);
+  } catch {
+    partial = true;
+  }
   const favoriteNames = new Set(favorites.map((a) => normalize(a.name)));
   const bookable = deduplicateConcerts(events);
   const candidates = bookable
@@ -361,7 +437,11 @@ export async function searchConcerts(
       );
       return { event, priority: shared + (exact ? 10 : 0) };
     })
-    .sort((a, b) => b.priority - a.priority);
+    .sort(
+      (a, b) =>
+        b.priority - a.priority ||
+        (a.event.providerRank ?? 9999) - (b.event.providerRank ?? 9999),
+    );
   const enriched = await enrichArtists(
     candidates.flatMap((e) => e.event.artists),
     enrich ? 4 : 0,
@@ -377,7 +457,7 @@ export async function searchConcerts(
     notice:
       base.notice +
       (partial
-        ? " Einzelne gezielte Künstlersuchen konnten nicht geladen werden."
+        ? " Einzelne gezielte Künstler- oder Genre-Abfragen konnten nicht geladen werden."
         : ""),
   };
 }

@@ -11,7 +11,7 @@ The public site runs in the operator's Cloudflare account and visitors can use i
 
 ## Verification
 
-- Thirty-nine logic tests cover fair scoring, artist names, genre inference, distance/date/price filters, duplicate preferences, Spotify standard/extended history and calendar output.
+- Forty-seven logic tests cover fair scoring, artist names, genre inference, distance/date/price filters, duplicate preferences, Spotify standard/extended history and calendar output.
 - Local API integration covers anonymous sessions, invalid JSON shapes, ownership, CSRF, invitation rotation, the eight-person limit, live events, shared saves, owned votes, export and deletion.
 - The deployment smoke check exercises public pages, secure session cookies, group creation and persistence, another browser session joining, unauthorized access rejection, live concert search, shortlist, votes and data deletion. Its own group is removed afterward.
 - The public browser flow was checked at a 390px mobile viewport: selection, results, loaded images, profile editing and a synthetic Spotify history file import. No horizontal overflow was found. Read-only WebMCP results were also verified.
@@ -46,3 +46,11 @@ The deterministic fallback now combines each person’s strongest artist connect
 The production API regression using Joji / Juice WRLD / Kendrick Lamar and Travis Scott / XXXTENTACION / Post Malone, Hamburg and 500 km, ranked Don Toliver first and J. Cole in the top five without a model call. Only the disposable test group was removed. Unit coverage includes the same profile, rock profiles, support acts, truncated metadata, plural upgrades and token-based inference accounting.
 
 The model reports token counts; the budget now converts those at the published Llama 3.3 FP8 Fast neuron rates with 25% headroom and refunds unused reservations before output validation. Unknown/failed usage keeps its reservation. The budget resets at 00:00 UTC and is shared across visitors; cached group assessments avoid repeat inference. Today’s budget was already exhausted, so the changed model prompt and token refund have not been rerun against live inference. No quota was reset and no paid upgrade was made.
+
+## Tour grouping and broader discovery (2026-10-01)
+
+Ordinary dates from the same billed artist now share a result, including shorter provider titles in other countries. Acoustic/DJ/festival programmes and explicit co-headliners remain separate. Date selection changes the actual ticket/calendar/save/vote event; the shortlist still keeps individual selected dates. Standalone premium/VIP packages, listening parties, fan birthdays and tribute offers are excluded.
+
+Discovery adds relevance-sorted queries for up to three leading music families (up to 600 events each), using the live provider classification catalogue. Related provider genres in one family share the query, with coverage across participants determining priority; there are no handpicked artist boosts. Public metadata enrichment prioritizes relevant provider-ranked acts. ListenBrainz audience weighting for the first billed artist now contributes up to 20 sorting points; a shared favorite stays ahead of inferred matches.
+
+The 1,000 km Hamburg regression returned 2,221 candidate events versus 750 from the previous general query. Newly discovered acts include The Kid LAROI, Bryson Tiller, Isaiah Rashad and Swae Lee. With final grouping/offer filters, The Kid LAROI is first in this deterministic test and Don Toliver occupies one result with thirteen real dates. Forty-seven tests passed. The public browser date selector was exercised on Mighty Oaks: choosing Bremen changed the displayed date, venue and ticket link from Hamburg to Bremen. These are bounded synthetic checks, not a claim of complete catalogue coverage or universally correct music predictions.

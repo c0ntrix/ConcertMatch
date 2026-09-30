@@ -9,7 +9,7 @@ import type {
 } from "./types";
 export function genreKey(genre: string): string {
   const key = normalize(genre);
-  if (/hiphop|rap|urban/.test(key)) return "hiphop";
+  if (/hiphop|rap|urban|^trap$|trapmusic|drill/.test(key)) return "hiphop";
   if (/^(rb|rbsoul)$|soul|funk/.test(key)) return "soul";
   if (/electro|dance|techno|house|edm|ambient/.test(key)) return "electronic";
   if (/indie|alternative|dreampop/.test(key)) return "indie";
@@ -193,13 +193,10 @@ export function distanceLabel(match: Match, origin: Preferences) {
 }
 
 export function prominence(concert: Concert) {
-  const listeners = Math.max(
-    0,
-    ...concert.artists.map((a) => a.listeners || 0),
-  );
+  const listeners = concert.artists[0]?.listeners || 0;
   // ListenBrainz is a community sample, not Spotify's global listener count.
   const audience = listeners
-    ? Math.min(12, Math.max(0, Math.log10(listeners) - 1) * 4)
+    ? Math.min(20, Math.max(0, Math.log10(listeners) - 1) * 5)
     : 0;
   return audience;
 }
@@ -209,7 +206,7 @@ export function deduplicateConcerts(concerts: Concert[]) {
   for (const c of concerts) {
     // Upgrades are not independent concerts and may not include admission.
     if (
-      /\b(upgrades?|parking|parkplatz|meet ?[&+] ?greet|vip.?package|vip.?paket|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|premium (?:seats?|packages?)|hospitality|platinum)\b/i.test(
+      /\b(upgrades?|parking|parkplatz|meet ?[&+] ?greet|vip.?packages?|vip.?pakete?|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|premium (?:seats?|packages?|tickets?)|hospitality|platinum|listening part(?:y|ies)|birthday celebration|tribute|fan[ -]part(?:y|ies)|after[ -]?part(?:y|ies))\b/i.test(
         c.title,
       )
     )
@@ -300,10 +297,48 @@ export function rankConcerts(
     )
     .sort(
       (a, b) =>
+        Number(b.score === 100) - Number(a.score === 100) ||
         b.score + prominence(b.concert) - (a.score + prominence(a.concert)) ||
         b.score - a.score ||
         (a.concert.providerRank ?? 9999) - (b.concert.providerRank ?? 9999) ||
         a.distance - b.distance ||
         a.concert.date.localeCompare(b.concert.date),
     );
+}
+
+// Keep actual dates intact for tickets, saving and voting; group only the view.
+export function groupTourMatches(matches: Match[]): Match[] {
+  const tours = new Map<string, Match[]>();
+  for (const match of matches) {
+    const c = match.concert;
+    const headliner = c.artists[0];
+    // Provider titles differ between countries, so ordinary dates group by act.
+    // Distinct acoustic/DJ/festival programmes and co-headlined bills stay separate.
+    const identity = headliner?.mbid || normalize(headliner?.name || c.title);
+    const distinctProgramme =
+      /\b(acoustic|unplugged|orchestr(?:al|a)|symphonic|festival|dj set)\b/i.test(
+        c.title,
+      );
+    const coHeadlined = c.artists
+      .slice(1)
+      .some((a) => normalize(c.title).includes(normalize(a.name)));
+    const programme =
+      !headliner || distinctProgramme || coHeadlined
+        ? normalize(c.title)
+        : "concert";
+    const key = identity + ":" + programme;
+    tours.set(key, [...(tours.get(key) || []), match]);
+  }
+  return [...tours.values()].map((dates) => {
+    const ordered = [...dates].sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.distance - b.distance ||
+        a.concert.date.localeCompare(b.concert.date),
+    );
+    return {
+      ...ordered[0],
+      alternatives: ordered.length > 1 ? ordered : undefined,
+    };
+  });
 }
