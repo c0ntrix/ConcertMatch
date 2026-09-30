@@ -1,0 +1,443 @@
+{
+  "members": [
+    {
+      "id": "0",
+      "name": "Person 1",
+      "artists": [
+        {
+          "mbid": "8264722b-df00-467a-858e-5c97cda169c9",
+          "aliases": ["ジョージ・楠木・ミラー", "Joji"],
+          "description": "Japanese‐Australian singer‐songwriter, rapper · US",
+          "listeners": 17578,
+          "id": "mb:8264722b-df00-467a-858e-5c97cda169c9",
+          "name": "Joji",
+          "genres": [
+            "lo-fi hip hop",
+            "r&b/soul",
+            "alt-pop",
+            "art pop",
+            "instrumental hip hop",
+            "alternative r&b"
+          ],
+          "url": "https://musicbrainz.org/artist/8264722b-df00-467a-858e-5c97cda169c9"
+        },
+        {
+          "mbid": "4e4ebde4-0c56-4dec-844b-6c73adcdd92d",
+          "aliases": [
+            "JuiceTheKidd",
+            "Juice The Kidd",
+            "Jarad Higgins",
+            "Jarad Anthony Higgins"
+          ],
+          "description": "US rapper · US",
+          "listeners": 17970,
+          "id": "mb:4e4ebde4-0c56-4dec-844b-6c73adcdd92d",
+          "name": "Juice WRLD",
+          "genres": [
+            "hip hop",
+            "emo rap",
+            "rap",
+            "trap",
+            "alternative hip hop",
+            "pop",
+            "east coast hip hop",
+            "cloud rap",
+            "chicago drill"
+          ],
+          "url": "https://musicbrainz.org/artist/4e4ebde4-0c56-4dec-844b-6c73adcdd92d"
+        },
+        {
+          "mbid": "381086ea-f511-4aba-bdf9-71c753dc5077",
+          "aliases": [
+            "Kendrick Lamar, SZA",
+            "Kendrick Lamar Duckworth",
+            "ケンドリック・ラマー",
+            "켄드릭 라마",
+            "K‐Dot"
+          ],
+          "description": "US",
+          "listeners": 117917,
+          "id": "mb:381086ea-f511-4aba-bdf9-71c753dc5077",
+          "name": "Kendrick Lamar",
+          "genres": [
+            "hip hop",
+            "conscious hip hop",
+            "jazz rap",
+            "west coast hip hop",
+            "rap",
+            "hardcore hip hop",
+            "pop",
+            "pop rap",
+            "alternative hip hop",
+            "trap",
+            "jazz",
+            "dance"
+          ],
+          "url": "https://musicbrainz.org/artist/381086ea-f511-4aba-bdf9-71c753dc5077"
+        }
+      ],
+      "genres": [],
+      "mine": true
+    },
+    {
+      "id": "1",
+      "name": "Person 2",
+      "artists": [
+        {
+          "mbid": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "aliases": [
+            "Travis Scott",
+            "Travi$ scott",
+            "Travis $cott",
+            "Travi$ Scot",
+            "T. Scott",
+            "Jacques Berman Webster II",
+            "Travi$ Scott",
+            "トラヴィス・スコット"
+          ],
+          "description": "US rapper · US",
+          "listeners": 24061,
+          "id": "mb:e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "name": "Travis Scott",
+          "genres": [
+            "hip hop",
+            "trap",
+            "rap",
+            "southern hip hop",
+            "pop rap",
+            "experimental hip hop"
+          ],
+          "url": "https://musicbrainz.org/artist/e4a51f17-a57b-47b1-b37b-f552d0f8e9e6"
+        },
+        {
+          "mbid": "61af87f4-16ee-4431-8504-cc06187079fb",
+          "aliases": [
+            "ジャセー・ドウェイン・リカルド・オンフロイ",
+            "XXXテンタシオン",
+            "lildickgirl666",
+            "Jahseh Dwayne Ricardo Onfroy",
+            "Jah",
+            "MAKE OUT HILL",
+            "heroinfather",
+            "fuckjahseh",
+            "Yung Dagger Dick",
+            "Triple X",
+            "XXX",
+            "X"
+          ],
+          "description": "US",
+          "listeners": 15390,
+          "id": "mb:61af87f4-16ee-4431-8504-cc06187079fb",
+          "name": "XXXTENTACION",
+          "genres": [
+            "trap",
+            "hip hop",
+            "emo rap",
+            "trap metal",
+            "rap",
+            "emo",
+            "cloud rap"
+          ],
+          "url": "https://musicbrainz.org/artist/61af87f4-16ee-4431-8504-cc06187079fb"
+        },
+        {
+          "mbid": "b1e26560-60e5-4236-bbdb-9aa5a8d5ee19",
+          "aliases": [
+            "포스트 말론",
+            "Austin Post",
+            "Austin Richard Post",
+            "Austin Richard Post"
+          ],
+          "description": "US",
+          "listeners": 25323,
+          "id": "mb:b1e26560-60e5-4236-bbdb-9aa5a8d5ee19",
+          "name": "Post Malone",
+          "genres": [
+            "hip hop",
+            "pop rap",
+            "trap",
+            "country",
+            "cloud rap",
+            "pop",
+            "r&b",
+            "contemporary r&b",
+            "alternative r&b"
+          ],
+          "url": "https://musicbrainz.org/artist/b1e26560-60e5-4236-bbdb-9aa5a8d5ee19"
+        }
+      ],
+      "genres": [],
+      "mine": true
+    }
+  ],
+  "preferences": {
+    "city": "Hamburg",
+    "lat": 53.5511,
+    "lng": 9.9937,
+    "radius": 500,
+    "from": "2026-09-30",
+    "to": "2027-03-30",
+    "budget": 0,
+    "discovery": true
+  },
+  "events": [
+    {
+      "id": "Z698xZC2Z16vP64EaA",
+      "title": "DON TOLIVER: NITROUS - OCTANE WORLD TOUR LEG 2",
+      "artists": [
+        {
+          "id": "tm:K8vZ917bVK7",
+          "name": "Don Toliver",
+          "genres": ["hip hop", "alternative r&b", "trap"],
+          "url": "https://musicbrainz.org/artist/a0723a3c-4135-438e-85c5-012712144ede",
+          "mbid": "a0723a3c-4135-438e-85c5-012712144ede",
+          "aliases": ["Caleb Zackery Toliver"],
+          "description": "US",
+          "listeners": 15387
+        }
+      ],
+      "date": "2026-11-06",
+      "time": "20:00:00",
+      "venue": "Barclays Arena",
+      "city": "Hamburg",
+      "lat": 53.58894,
+      "lng": 9.899,
+      "url": "https://www.ticketmaster.de/event/don-toliver-nitrous-octane-world-tour-leg-2-tickets/1947567245",
+      "image": "https://s1.ticketm.net/dam/a/4d1/d0bc76d6-02e3-4e46-96fc-658377e464d1_RETINA_PORTRAIT_16_9.jpg",
+      "genres": ["Hip-Hop/Rap"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 8
+    },
+    {
+      "id": "Z698xZC2Z16vAbf0op",
+      "title": "J. Cole: The Fall-Off Tour",
+      "artists": [
+        {
+          "id": "tm:K8vZ917Gi6V",
+          "name": "J. Cole",
+          "genres": ["hip hop", "rap"],
+          "url": "https://musicbrainz.org/artist/875203e1-8e58-4b86-8dcb-7190faf411c5",
+          "mbid": "875203e1-8e58-4b86-8dcb-7190faf411c5",
+          "aliases": [
+            "J Cole",
+            "Jermaine Cole",
+            "Jermaine Lamarr Cole",
+            "Jermaine L. Cole",
+            "j.cole"
+          ],
+          "description": "US rapper & producer · US",
+          "listeners": 65146
+        }
+      ],
+      "date": "2026-11-08",
+      "time": "20:00:00",
+      "venue": "Barclays Arena",
+      "city": "Hamburg",
+      "lat": 53.58894,
+      "lng": 9.899,
+      "url": "https://www.ticketmaster.de/event/j-cole-the-fall-off-tour-tickets/1158524456",
+      "image": "https://s1.ticketm.net/dam/a/cc7/bdd0a6dc-49b6-4d87-a1ba-14d401c71cc7_RETINA_PORTRAIT_16_9.jpg",
+      "genres": ["Hip-Hop/Rap"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 61
+    },
+    {
+      "id": "Z698xZC2Z1kfs8v4Z",
+      "title": "THE KEHLANI WORLD TOUR: EU & UK",
+      "artists": [
+        {
+          "id": "tm:K8vZ9173Ty7",
+          "mbid": "3260ce89-5eb0-4c6a-89c7-379c0dfc2ab9",
+          "name": "Kehlani",
+          "genres": [
+            "pop",
+            "hip hop",
+            "neo soul",
+            "r&b",
+            "electronic",
+            "soul",
+            "contemporary r&b",
+            "adult contemporary r&b",
+            "alternative r&b",
+            "R&B"
+          ],
+          "aliases": ["Kehlani Ashley Parrish"],
+          "description": "Kehlani Ashley Parrish, an American singer-songwriter · US",
+          "url": "https://www.ticketmaster.com/kehlani-tickets/artist/2061750",
+          "listeners": 13584
+        },
+        {
+          "id": "tm:K8vZ917juOf",
+          "mbid": "47e10b14-4b74-4650-bc2b-34424c1c6bcb",
+          "name": "Odeal",
+          "genres": ["Hip-Hop/Rap", "Urban"],
+          "aliases": ["Hillary Dennis Udanoh", "Odeal"],
+          "description": "GB",
+          "url": "https://www.ticketmaster.com/odeal-tickets/artist/3090685",
+          "listeners": 1645
+        },
+        {
+          "id": "tm:K8vZ917OpmV",
+          "mbid": "0d9ba3d9-e0c8-4cab-90fa-de7bb3e39952",
+          "name": "WASEEL",
+          "genres": ["Hip-Hop/Rap"],
+          "aliases": [],
+          "description": "",
+          "url": "https://www.ticketmaster.com/waseel-tickets/artist/4460704"
+        }
+      ],
+      "date": "2026-11-29",
+      "time": "20:00:00",
+      "venue": "Velodrom",
+      "city": "Berlin",
+      "lat": 52.53117,
+      "lng": 13.45067,
+      "url": "https://www.ticketmaster.de/event/the-kehlani-world-tour-eu--uk-tickets/531401540",
+      "image": "https://s1.ticketm.net/dam/a/5e1/bef571fc-a24d-477f-9858-a7cc7d0055e1_RETINA_PORTRAIT_3_2.jpg",
+      "genres": ["Hip-Hop/Rap", "R&B", "Urban"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 983
+    },
+    {
+      "id": "Z698xZC2Z16vvOrdAO",
+      "title": "Pitbull - I'm Back!",
+      "artists": [
+        {
+          "id": "tm:K8vZ917Gp10",
+          "name": "Pitbull",
+          "genres": ["Pop"],
+          "url": "https://www.ticketmaster.com/pitbull-tickets/artist/985347"
+        },
+        {
+          "id": "tm:K8vZ917ucnf",
+          "mbid": "a95384b1-6aec-468c-ae0d-8c6daf87c4c2",
+          "name": "Lil Jon",
+          "genres": ["hip hop", "rap", "Hip-Hop/Rap", "Urban"],
+          "aliases": [
+            "Jonathan “Lil Jon” Smith",
+            "Cuervo Jones",
+            "Jonathan “Lil’ Jon” Smith",
+            "Lil’ John",
+            "Jonathan H. Smith"
+          ],
+          "description": "US producer & rapper · US",
+          "url": "https://www.ticketmaster.com/lil-jon-tickets/artist/722786",
+          "listeners": 72883
+        }
+      ],
+      "date": "2026-11-16",
+      "time": "20:00:00",
+      "venue": "Westfalenhalle",
+      "city": "Dortmund",
+      "lat": 51.49688,
+      "lng": 7.4567,
+      "url": "https://www.ticketmaster.de/event/pitbull-im-back-tickets/1060783160",
+      "image": "https://s1.ticketm.net/dam/a/d7f/51c44f52-ee24-4b0a-8d40-21b74e271d7f_RETINA_PORTRAIT_3_2.jpg",
+      "genres": ["Rock", "Pop"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 965
+    },
+    {
+      "id": "Z698xZbpZ1kqN76oF",
+      "title": "Charli xcx - Music, Fashion, Film Tour",
+      "artists": [
+        {
+          "id": "tm:K8vZ917CDKf",
+          "mbid": "260b6184-8828-48eb-945c-bc4cb6fc34ca",
+          "name": "Charli xcx",
+          "genres": [
+            "dance-pop",
+            "electronic",
+            "synth-pop",
+            "pop",
+            "experimental pop",
+            "dance",
+            "house",
+            "hip hop",
+            "electronica",
+            "indie pop",
+            "pop punk",
+            "experimental hip hop"
+          ],
+          "aliases": [
+            "查里",
+            "charli xcx",
+            "Charlotte Aitchison",
+            "ชาร์ล็อตส์ เอ็มม่า อิชชิซัน",
+            "夏洛特·愛瑪·阿奇森",
+            "Шарлота Ема Ејчисон",
+            "チャーリー・エックス・シー・エックス",
+            "Charli xcx",
+            "Charli XCX",
+            "チャーリーxcx",
+            "Charlotte Emma Aitchison",
+            "چارلی ایکس‌سی‌ایکس"
+          ],
+          "description": "",
+          "url": "https://www.ticketmaster.com/charli-xcx-tickets/artist/1638380",
+          "listeners": 79326
+        },
+        {
+          "id": "tm:K8vZ917rPOV",
+          "mbid": "bf2bf522-581e-4c93-81c2-cb5b826b02e4",
+          "name": "Audrey Hobert",
+          "genres": ["pop", "indie pop", "pop rock", "alternative pop", "Pop"],
+          "aliases": [],
+          "description": "US",
+          "url": "https://www.ticketmaster.com/audrey-hobert-tickets/artist/3919869",
+          "listeners": 1306
+        }
+      ],
+      "date": "2027-02-22",
+      "time": "20:00:00",
+      "venue": "Ziggo Dome",
+      "city": "Amsterdam",
+      "lat": 52.31395,
+      "lng": 4.93837,
+      "url": "https://www.ticketmaster.nl/event/charli-xcx-music-fashion-film-tour-tickets/763107448",
+      "image": "https://s1.ticketm.net/dam/a/cd1/68b9daa1-e5ac-4238-9e87-d541a7b3ccd1_RETINA_PORTRAIT_16_9.jpg",
+      "genres": ["Pop", "Rock"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 963
+    },
+    {
+      "id": "Z698xZC2Z16vCe_JOK",
+      "title": "Kid Kapri - Kleine Dinge Releasekonzert",
+      "artists": [
+        {
+          "id": "tm:K8vZ917h4p0",
+          "mbid": "4446041c-8686-42a9-9e16-0e90cf100fd2",
+          "name": "Kid Kapri",
+          "genres": ["Hip-Hop/Rap"],
+          "aliases": [],
+          "description": "",
+          "url": "https://www.ticketmaster.com/kid-kapri-tickets/artist/3005561",
+          "listeners": 162
+        }
+      ],
+      "date": "2026-10-10",
+      "time": "19:00:00",
+      "venue": "Lagerhaus",
+      "city": "Bremen",
+      "lat": 53.0722,
+      "lng": 8.82206,
+      "url": "https://www.ticketmaster.de/event/kid-kapri-kleine-dinge-releasekonzert-tickets/1382666813",
+      "image": "https://s1.ticketm.net/dam/a/6e0/d19b9a47-cc46-43bb-b308-4d3ac2ee76e0_RETINA_PORTRAIT_3_2.jpg",
+      "genres": ["Hip-Hop/Rap"],
+      "source": "Ticketmaster",
+      "checkedAt": "2026-09-30T21:07:00.256Z",
+      "status": "onsale",
+      "providerRank": 900
+    }
+  ]
+}

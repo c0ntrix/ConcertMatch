@@ -1,3 +1,4 @@
+import { resolveMetadataBatch } from "./artist-metadata";
 import { ARTISTS, normalize } from "./catalog";
 import { ApiError, cached, db, putCache } from "./server";
 import type { Artist } from "./types";
@@ -18,7 +19,10 @@ const literal = (s: string) => '"' + s.replace(/[\\"]/g, "\\$&") + '"';
 
 // A shared lease, rather than an isolate-local timer, respects MusicBrainz's
 // one-request-per-second limit even when several visitors search at once.
-async function musicBrainz(query: string, limit = 16): Promise<MBArtist[]> {
+async function queryMusicBrainz(
+  query: string,
+  limit = 16,
+): Promise<{ artists: MBArtist[]; complete: boolean }> {
   for (let attempt = 0; attempt < 4; attempt++) {
     const now = Date.now();
     const slot = await db()
@@ -51,12 +55,27 @@ async function musicBrainz(query: string, limit = 16): Promise<MBArtist[]> {
         "Der Musikkatalog ist gerade ausgelastet. Bitte erneut versuchen.",
         503,
       );
-    return ((await response.json()) as { artists?: MBArtist[] }).artists || [];
+    const data = (await response.json()) as {
+      artists?: MBArtist[];
+      count?: number;
+    };
+    const artists = data.artists || [];
+    return {
+      artists,
+      complete:
+        typeof data.count === "number"
+          ? data.count <= artists.length
+          : artists.length < limit,
+    };
   }
   throw new ApiError(
     "Der Musikkatalog ist gerade ausgelastet. Bitte erneut versuchen.",
     503,
   );
+}
+
+async function musicBrainz(query: string, limit = 16) {
+  return (await queryMusicBrainz(query, limit)).artists;
 }
 
 function fromMB(a: MBArtist): Artist {
@@ -220,10 +239,13 @@ export async function enrichArtists(
     ...new Map(input.map((a) => [normalize(a.name), a.name])).values(),
   ];
   const resolved = new Map<string, Artist | null>();
-  for (let offset = 0; offset < names.length; offset += 80) {
+  for (let offset = 0; offset < names.length; offset += 40) {
     const keys = names
-      .slice(offset, offset + 80)
-      .map((n) => "artist-meta:v3:" + normalize(n));
+      .slice(offset, offset + 40)
+      .flatMap((n) => [
+        "artist-meta:v3:" + normalize(n),
+        "artist-meta:v4:" + normalize(n),
+      ]);
     if (!keys.length) continue;
     const rows = await db()
       .prepare(
@@ -231,53 +253,56 @@ export async function enrichArtists(
       )
       .bind(...keys, Date.now())
       .all<{ key: string; data: string }>();
-    for (const row of rows.results)
-      resolved.set(
-        row.key.slice("artist-meta:v3:".length),
-        JSON.parse(row.data),
-      );
+    for (const row of rows.results.sort((a, b) => a.key.localeCompare(b.key))) {
+      const value = JSON.parse(row.data) as Artist | null;
+      // Keep valid old metadata, but retry old negative entries from truncated queries.
+      if (value || row.key.startsWith("artist-meta:v4:"))
+        resolved.set(row.key.slice("artist-meta:v4:".length), value);
+    }
   }
   const missing = names.filter((n) => !resolved.has(normalize(n)));
+  const pending: string[][] = [];
   for (
     let offset = 0;
     offset < Math.min(missing.length, maxBatches * 30);
     offset += 30
-  ) {
-    const batch = missing.slice(offset, offset + 30);
+  )
+    pending.push(missing.slice(offset, offset + 30));
+  for (let request = 0; request < maxBatches * 2 && pending.length; request++) {
+    const batch = pending.shift()!;
     try {
-      const candidates = await withPopularity(
-        (
-          await musicBrainz(
-            batch.map((n) => "artist:" + literal(n)).join(" OR "),
-            100,
-          )
-        ).map(fromMB),
+      const result = await queryMusicBrainz(
+        batch.map((n) => "artist:" + literal(n)).join(" OR "),
+        100,
       );
-      const statements = [];
-      for (const name of batch) {
-        const exact = candidates
-          .filter((a) => normalize(a.name) === normalize(name))
-          .sort((a, b) => (b.listeners || 0) - (a.listeners || 0));
-        const best =
-          candidates.length < 100 && exact.length === 1 ? exact[0] : null;
-        resolved.set(normalize(name), best || null);
-        statements.push(
-          db()
-            .prepare(
-              "INSERT INTO cache(key,data,expires_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,expires_at=excluded.expires_at",
-            )
-            .bind(
-              "artist-meta:v3:" + normalize(name),
-              JSON.stringify(best || null),
-              Date.now() + (best ? week : 86400000),
-            ),
-        );
+      if (!result.complete) {
+        // Retry smaller batches before later names. Never cache a truncated miss.
+        if (batch.length > 1) {
+          const middle = Math.ceil(batch.length / 2);
+          pending.unshift(batch.slice(0, middle), batch.slice(middle));
+        }
+        continue;
       }
-      await db().batch(statements);
+      const candidates = await withPopularity(result.artists.map(fromMB));
+      const metadata = resolveMetadataBatch(batch, candidates, true);
+      const statements = [...metadata].map(([name, best]) => {
+        resolved.set(name, best);
+        return db()
+          .prepare(
+            "INSERT INTO cache(key,data,expires_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,expires_at=excluded.expires_at",
+          )
+          .bind(
+            "artist-meta:v4:" + name,
+            JSON.stringify(best),
+            Date.now() + (best ? week : 86400000),
+          );
+      });
+      if (statements.length) await db().batch(statements);
     } catch {
       break;
     }
   }
+
   return input.map((a) => {
     const meta = resolved.get(normalize(a.name));
     if (!meta || (a.mbid && a.mbid !== meta.mbid)) return a;

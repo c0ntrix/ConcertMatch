@@ -73,12 +73,75 @@ const styleKey = (genre: string) =>
   normalize(genre);
 const specifics = (genres: string[]) =>
   [...new Set(genres.map(styleKey))].filter((g) => g && !broad.has(g));
+function styleAffinity(favorite: Artist, eventGenres: string[]) {
+  const families = [...new Set(eventGenres.map(genreKey))];
+  const shared = specifics(eventGenres).filter((g) =>
+    specifics(favorite.genres).includes(g),
+  );
+  const overlap = families.filter((g) =>
+    favorite.genres.some((x) => genreKey(x) === g),
+  );
+  if (!overlap.length && !shared.length) return { score: 0, labels: [] };
+  const specificPosition = Math.max(
+    Math.min(
+      ...favorite.genres.map((g, i) =>
+        shared.includes(styleKey(g)) ? i : Infinity,
+      ),
+    ),
+    Math.min(
+      ...eventGenres.map((g, i) =>
+        shared.includes(styleKey(g)) ? i : Infinity,
+      ),
+    ),
+  );
+  const familyPosition = Math.max(
+    Math.min(
+      ...favorite.genres.map((g, i) =>
+        overlap.includes(genreKey(g)) ? i : Infinity,
+      ),
+    ),
+    Math.min(
+      ...eventGenres.map((g, i) =>
+        overlap.includes(genreKey(g)) ? i : Infinity,
+      ),
+    ),
+  );
+  // MusicBrainz tags arrive in vote order. A peripheral pop/rock tag on a
+  // rapper should not make piano-pop a strong recommendation for the group.
+  let score = shared.length
+    ? Math.min(82, 64 + shared.length * 6) - Math.min(18, specificPosition * 2)
+    : Math.round(
+        (26 + (14 * overlap.length) / Math.max(1, families.length)) /
+          (1 + familyPosition * 0.35),
+      );
+  const labels = eventGenres
+    .filter((g) => shared.includes(styleKey(g)))
+    .slice(0, 2);
+  if (shared.length && specificPosition > 4) score = Math.min(score, 40);
+  if (shared.length && specificPosition > 6) score = Math.min(score, 24);
+  return { score, labels };
+}
 export function affinity(member: Member, concert: Concert) {
   const direct = concert.artists.find((a) =>
     member.artists.some((b) => sameArtist(a, b)),
   );
   if (direct)
     return { score: 100, reason: direct.name + " gehört zu deinen Favoriten." };
+  const favorites = member.artists.filter(
+    (a, i, all) => all.findIndex((b) => sameArtist(a, b)) === i,
+  );
+  const references = [
+    ...favorites,
+    ...(member.genres.length
+      ? [
+          {
+            id: "genre-selection",
+            name: "deiner Genreauswahl",
+            genres: member.genres,
+          },
+        ]
+      : []),
+  ];
   const candidates = concert.artists.length
     ? concert.artists
     : [{ name: concert.title, genres: concert.genres }];
@@ -86,78 +149,47 @@ export function affinity(member: Member, concert: Concert) {
     score: 0,
     reason: "Bisher keine belastbare musikalische Gemeinsamkeit gefunden.",
   };
-  for (const candidate of candidates) {
+  // One peripheral favorite cannot represent a person's whole music taste.
+  // The first billed artist represents the main show; support is weaker evidence.
+  candidates.forEach((candidate, index) => {
     const eventGenres = candidate.genres.length
       ? candidate.genres
       : concert.genres;
-    const eventSpecific = specifics(eventGenres);
-    const eventFamilies = [...new Set(eventGenres.map(genreKey))];
-    for (const favorite of [
-      ...member.artists,
-      ...(member.genres.length
-        ? [{ name: "deiner Genreauswahl", genres: member.genres }]
-        : []),
-    ]) {
-      const shared = eventSpecific.filter((g) =>
-        specifics(favorite.genres).includes(g),
-      );
-      const overlap = eventFamilies.filter((g) =>
-        favorite.genres.some((x) => genreKey(x) === g),
-      );
-      if (!overlap.length && !shared.length) continue;
-      const specificPosition = Math.max(
-        Math.min(
-          ...favorite.genres.map((g, i) =>
-            shared.includes(styleKey(g)) ? i : Infinity,
-          ),
-        ),
-        Math.min(
-          ...eventGenres.map((g, i) =>
-            shared.includes(styleKey(g)) ? i : Infinity,
-          ),
-        ),
-      );
-      const familyPosition = Math.max(
-        Math.min(
-          ...favorite.genres.map((g, i) =>
-            overlap.includes(genreKey(g)) ? i : Infinity,
-          ),
-        ),
-        Math.min(
-          ...eventGenres.map((g, i) =>
-            overlap.includes(genreKey(g)) ? i : Infinity,
-          ),
-        ),
-      );
-      // MusicBrainz tags arrive in vote order. A peripheral pop/rock tag on a
-      // rapper should not make piano-pop a strong recommendation for the group.
-      const score = shared.length
-        ? Math.min(82, 64 + shared.length * 6) -
-          Math.min(18, specificPosition * 2)
-        : Math.round(
-            (26 + (14 * overlap.length) / Math.max(1, eventFamilies.length)) /
-              (1 + familyPosition * 0.35),
-          );
-      const labels = eventGenres
-        .filter((g) => shared.includes(styleKey(g)))
-        .slice(0, 2);
-      if (score > best.score)
-        best = {
-          score,
-          reason: shared.length
-            ? labels.join(" / ") +
+    const pairs = references.map((favorite) => ({
+      ...styleAffinity(favorite, eventGenres),
+      favorite,
+    }));
+    const strongest = [...pairs].sort((a, b) => b.score - a.score)[0];
+    if (!strongest || !strongest.score) return;
+    const average =
+      pairs.reduce((total, pair) => total + pair.score, 0) / pairs.length;
+    const score = Math.round(
+      (0.6 * strongest.score + 0.4 * average) * (index === 0 ? 1 : 0.65),
+    );
+    if (score > best.score)
+      best = {
+        score,
+        reason:
+          (index ? "Support: " : "") +
+          (strongest.labels.length
+            ? strongest.labels.join(" / ") +
               " verbindet " +
               candidate.name +
               " mit " +
-              favorite.name +
-              ". Eine stilistische Empfehlung."
+              strongest.favorite.name +
+              ". Die übrige Auswahl zählt mit."
             : "Ähnliche Grundrichtung wie " +
-              favorite.name +
-              ", aber bisher nur grobe Genre-Daten. Zum Reinhören.",
-        };
-    }
-  }
+              strongest.favorite.name +
+              ", aber bisher nur grobe Genre-Daten. Zum Reinhören."),
+      };
+  });
   return best;
+}
+
+export function distanceLabel(match: Match, origin: Preferences) {
+  return normalize(match.concert.city) === normalize(origin.city)
+    ? "in " + origin.city
+    : "ca. " + match.distance + " km Luftlinie";
 }
 
 export function prominence(concert: Concert) {
@@ -177,7 +209,7 @@ export function deduplicateConcerts(concerts: Concert[]) {
   for (const c of concerts) {
     // Upgrades are not independent concerts and may not include admission.
     if (
-      /\b(upgrade|parking|parkplatz|meet ?[&+] ?greet|vip.?package|vip.?paket|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|premium (?:seats?|packages?)|hospitality|platinum)\b/i.test(
+      /\b(upgrades?|parking|parkplatz|meet ?[&+] ?greet|vip.?package|vip.?paket|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|premium (?:seats?|packages?)|hospitality|platinum)\b/i.test(
         c.title,
       )
     )
@@ -264,7 +296,7 @@ export function rankConcerts(
       (c) =>
         c.score > 0 &&
         (!c.discovery ||
-          (prefs.discovery && c.members.every((m) => m.score >= 25))),
+          (prefs.discovery && c.members.every((m) => m.score >= 30))),
     )
     .sort(
       (a, b) =>

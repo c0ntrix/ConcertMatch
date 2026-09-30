@@ -1,7 +1,7 @@
 import type { Artist, Concert, Member, Preferences } from "./types";
 import { normalize } from "./catalog";
 import { enrichArtists } from "./music-catalog";
-import { sameArtist, genreKey } from "./matching";
+import { sameArtist, genreKey, deduplicateConcerts } from "./matching";
 import { ApiError, cached, config, db, putCache } from "./server";
 type Classification = {
   genre?: { name?: string };
@@ -64,7 +64,15 @@ function parseEvent(e: Event, checkedAt: string): Concert | null {
     return null;
   const lat = Number(v.location?.latitude),
     lng = Number(v.location?.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (
+    !v.location?.latitude?.trim() ||
+    !v.location.longitude?.trim() ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    Math.abs(lat) > 90 ||
+    Math.abs(lng) > 180
+  )
+    return null;
   const images = (e.images || [])
     .filter((i) => i.url.startsWith("https://s1.ticketm.net/"))
     .sort((a, b) => Math.abs(a.width - 500) - Math.abs(b.width - 500));
@@ -338,7 +346,8 @@ export async function searchConcerts(
       ),
   );
   const favoriteNames = new Set(favorites.map((a) => normalize(a.name)));
-  const candidates = events
+  const bookable = deduplicateConcerts(events);
+  const candidates = bookable
     .map((event) => {
       const genres = [
         ...event.genres,
@@ -360,7 +369,7 @@ export async function searchConcerts(
   const byId = new Map(enriched.map((a) => [a.id, a]));
   return {
     ...base,
-    events: events.map((e) => ({
+    events: bookable.map((e) => ({
       ...e,
       artists: e.artists.map((a) => byId.get(a.id) || a),
     })),

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   affinity,
+  distanceLabel,
+  matchConcert,
   rankConcerts,
   sameArtist,
   deduplicateConcerts,
@@ -139,4 +141,78 @@ test("an unavailable duplicate does not hide a bookable concert", () => {
     rankConcerts([bad, live], members, { ...p, budget: 50 })[0].concert.id,
     live.id,
   );
+});
+
+test("a support act cannot turn an unrelated headliner into a strong match", () => {
+  const main = artist("Dance headliner", ["dance pop", "pop"]);
+  const support = artist("Rap support", ["emo rap", "hip hop"]);
+  const mixed = concert(main, { artists: [main, support] });
+  const rapShow = concert(artist("Rap headliner", ["emo rap", "hip hop"]));
+  assert.ok(
+    affinity(members[0], mixed).score < affinity(members[0], rapShow).score,
+  );
+  assert.match(affinity(members[0], mixed).reason, /Support/);
+  assert.equal(
+    affinity({ ...members[0], artists: [support] }, mixed).score,
+    100,
+  );
+});
+test("whole-profile fit outranks a connection to only one peripheral favorite", () => {
+  const profile = {
+    ...members[0],
+    artists: [
+      juice,
+      peep,
+      artist("Rap third", ["hip hop", "trap"]),
+      artist("Occasional soul", ["neo soul", "r&b"]),
+    ],
+  };
+  const rap = concert(artist("Rap show", ["hip hop", "emo rap", "trap"]));
+  const soul = concert(artist("Soul show", ["neo soul", "r&b"]));
+  assert.ok(affinity(profile, rap).score > affinity(profile, soul).score);
+});
+test("matching across a rock profile uses the whole taste without rapper-specific rules", () => {
+  const profile = {
+    ...members[0],
+    artists: [
+      artist("Band A", ["indie rock", "rock"]),
+      artist("Band B", ["indie rock", "post punk"]),
+      artist("Singer", ["piano pop", "pop"]),
+    ],
+  };
+  assert.ok(
+    affinity(profile, concert(artist("Indie show", ["indie rock", "rock"])))
+      .score >
+      affinity(profile, concert(artist("Piano show", ["piano pop", "pop"])))
+        .score,
+  );
+});
+test("plural VIP upgrades without admission are excluded even with a different lineup", () => {
+  const show = concert(juice);
+  assert.deepEqual(
+    deduplicateConcerts([
+      show,
+      {
+        ...show,
+        id: "extra",
+        title: "World Tour | VIP Upgrades (no ticket included)",
+        artists: [juice, peep],
+      },
+    ]).map((c) => c.id),
+    [show.id],
+  );
+});
+test("same-city labels do not imply distance from a personal location", () => {
+  const sameCity = matchConcert(
+    concert(juice, { lat: p.lat + 0.01 }),
+    members,
+    p,
+  );
+  assert.equal(distanceLabel(sameCity, p), "in " + p.city);
+  const other = {
+    ...sameCity,
+    concert: { ...sameCity.concert, city: "Other" },
+    distance: 257,
+  };
+  assert.equal(distanceLabel(other, p), "ca. 257 km Luftlinie");
 });

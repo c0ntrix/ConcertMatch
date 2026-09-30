@@ -1,0 +1,15 @@
+{
+  "name": "concertmatch-ad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.8.98 preview",
+    "check": "npx --yes hyperframes@0.8.98 check",
+    "render": "npx --yes hyperframes@0.8.98 render --fps 60 --quality high --workers 2 --output renders/ConcertMatch-Unser-Abend-1080p.mp4",
+    "publish": "npx --yes hyperframes@0.8.98 publish",
+    "sync": "node scripts/sync-motion.mjs",
+    "score": "node scripts/make-score.mjs",
+    "render:portrait": "npx --yes hyperframes@0.8.98 render portrait --fps 60 --quality high --workers 2 --output renders/ConcertMatch-Unser-Abend-vertical.mp4",
+    "check:portrait": "npx --yes hyperframes@0.8.98 check portrait"
+  }
+}

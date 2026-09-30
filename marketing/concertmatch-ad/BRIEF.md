@@ -1,0 +1,2 @@
+# Brief
+30-second motion graphics advertising ConcertMatch. User grants creative direction: minimalist, tasteful, strong wow factor. German audience. Deliver actual MP4 plus editable source. Unnarrated brand reel with original musical score. Product: find concerts that make sense for two or more people's music tastes. CTA: concertmatch.ticore.workers.dev. This is an ad for the existing product, not an interface redesign.
