@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Wie das Matching funktioniert · ConcertMatch",
@@ -5,9 +6,9 @@ export const metadata: Metadata = {
 export default function Methode() {
   return (
     <main className="legal-content">
-      <a className="back-link" href="/">
+      <Link className="back-link" href="/">
         ← Zur Konzertsuche
-      </a>
+      </Link>
       <h1>Ein guter Abend für alle.</h1>
       <p>
         Ihr müsst nicht dieselben Playlists haben. ConcertMatch sucht Konzerte,
@@ -33,10 +34,13 @@ export default function Methode() {
         16 geeignetsten Line-ups; Tourtermine desselben Line-ups teilen diese
         Einschätzung. Ohne Modellbewertung: Passende Grundrichtungen wie Pop
         oder Hip-Hop bringen höchstens 40 Punkte. Gemeinsame konkrete Stile wie
-        Emo-Rap bringen bis zu 82 Punkte. Nebensächliche Genre-Tags zählen
-        weniger als prägende Stilrichtungen. Fehlen passende oder ausreichende
-        Daten, gibt es 0 Punkte – das heißt nicht, dass euch die Musik nicht
-        gefallen könnte.
+        Emo-Rap bringen bis zu 82 Punkte. Wir berücksichtigen die gesamte
+        Künstlerauswahl einer Person: Die beste stilistische Verbindung zählt zu
+        60 %, der Durchschnitt aller Verbindungen zu 40 %. Nebensächliche
+        Genre-Tags zählen weniger als prägende Stilrichtungen. Support-Acts
+        erhalten bei stilistischen Empfehlungen ein geringeres Gewicht als der
+        erste angekündigte Act. Fehlen passende oder ausreichende Daten, gibt es
+        0 Punkte – das heißt nicht, dass euch die Musik nicht gefallen könnte.
       </p>
       <p className="method-formula">
         Gruppenwert = 65 % niedrigster Einzelwert + 35 % Durchschnitt
@@ -86,10 +90,10 @@ export default function Methode() {
         doppelte Angebote derselben Show blenden wir aus.
       </p>
       <p>
-        Bei Entdeckungen braucht jede Person mindestens eine grundlegende
-        musikalische Passung. Sonst zeigen wir das Konzert nicht als gemeinsame
-        Entdeckung an. Bereits gewählte Favoriten bleiben auch mit
-        unterschiedlicher Passung sichtbar.
+        Bei Entdeckungen braucht jede Person mindestens 30 Matchpunkte und damit
+        eine grundlegende musikalische Passung. Sonst zeigen wir das Konzert
+        nicht als gemeinsame Entdeckung an. Bereits gewählte Favoriten bleiben
+        auch mit unterschiedlicher Passung sichtbar.
       </p>
       <h2>Top-Künstler ohne Wartezeit finden</h2>
       <p>
@@ -127,10 +131,13 @@ export default function Methode() {
         Treffer bedeuten nicht, dass es keine Tour gibt.
       </p>
       <p>
-        Die Entfernung ist keine Fahrstrecke. Die Preisgrenze berücksichtigt
-        verfügbare Euro-Preise; Termine ohne Preisangabe werden bei gesetztem
-        Budget ausgeblendet. Gebühren und Verfügbarkeit können abweichen. Prüft
-        deshalb den verlinkten Originaltermin vor einer Buchung.
+        Entfernungen sind Luftlinien ab dem Zentrum des gewählten Startorts,
+        keine Fahrstrecken und keine Entfernung von deiner Adresse. Bei
+        Konzerten im selben Ort steht deshalb nur „in Hamburg“ beziehungsweise
+        euer Startort. Die Preisgrenze berücksichtigt verfügbare Euro-Preise;
+        Termine ohne Preisangabe werden bei gesetztem Budget ausgeblendet.
+        Gebühren und Verfügbarkeit können abweichen. Prüft deshalb den
+        verlinkten Originaltermin vor einer Buchung.
       </p>
       <h2>Gemeinsam entscheiden</h2>
       <p>

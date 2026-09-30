@@ -14,7 +14,7 @@ Concerts your whole group can agree on. A German-language web app for 2–8 peop
 - Calendar downloads, profile export/deletion and a 90-day group lifetime.
 - Optional Spotify PKCE top-artists import, hidden until configured.
 
-The group score is **65% minimum individual score + 35% average**. A favorite scores 100. The initial genre results are refined by Llama 3.3 on Cloudflare Workers AI, which assesses musical proximity for each person using verified candidate lineups. Inferred scores run from 0–92; uncertain knowledge is capped at 45. Public ListenBrainz audience counts add up to 12 sorting points. Scores are not calibrated probabilities or audio analysis.
+The group score is **65% minimum individual score + 35% average**. A favorite scores 100. Genre inference combines the best artist-to-favorite connection (60%) with the average across the person’s whole selection (40%); peripheral tags are capped and support-act evidence is discounted. The initial genre results are refined by Llama 3.3 on Cloudflare Workers AI, which assesses musical proximity for each person using verified candidate lineups. Inferred scores run from 0–92; uncertain knowledge is capped at 45. Public ListenBrainz audience counts add up to 12 sorting points. Scores are not calibrated probabilities or audio analysis.
 
 ## Local development
 
@@ -74,11 +74,11 @@ Anonymous browser capabilities are HttpOnly/SameSite cookies; stored values are 
 
 ## Current limits
 
-Ticketmaster is not a complete gig catalogue. Up to 800 provider-relevant events per area query plus targeted searches for up to eight favorites, interleaved across profiles; predefined German departure cities. Nearby concerts in other countries are included. Distances are straight-line, not travel time. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
+Ticketmaster is not a complete gig catalogue. Up to 800 provider-relevant events per area query plus targeted searches for up to eight favorites, interleaved across profiles; predefined German departure cities. Nearby concerts in other countries are included. Distances are straight-line from the selected city centre, not a personal address or travel time. Same-city results show the city instead of misleading small kilometre figures. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
 
 Model reasoning can be wrong, especially for niche or ambiguous names. Up to 20 favorites per person and 180 distinct candidate lineups are sent, with a 15 KB input cap that can reduce those counts; the model assesses up to 16 lineups. Actual event dates and availability come from Ticketmaster. No model is trained on listening data. OAuth and history-imported favorites can be manually corrected.
 
-Expired data is purged on subsequent service requests, not by a scheduled job. D1 request limits and caching bound provider usage; the app reserves inference usage atomically within an 8,000-neuron daily ceiling (below Cloudflare's 10,000 free allowance), and falls back to genres when unavailable. The allowance is shared with other Workers AI usage in the account; more traffic would benefit from further load testing and provider agreements.
+Expired data is purged on subsequent service requests, not by a scheduled job. D1 request limits and caching bound provider usage; the app reserves inference usage atomically within an 8,000-neuron daily ceiling (below Cloudflare's 10,000 free allowance), and falls back to genres when unavailable. The budget resets at 00:00 UTC (02:00 German summer time / 01:00 winter time). Each new assessment reserves 1,500 neurons; reported neuron usage or token counts at the published model rate (with 25% headroom) refund the unused reservation even if output validation fails. Without usage refunds this allows five calls per day; actual capacity varies by input/output length and account usage. Reusing a cached group assessment for 24 hours does not consume another model call. The allowance is shared with other Workers AI usage in the account; more traffic would benefit from further load testing and provider agreements.
 
 See [market research](docs/market-research.md) and [handoff](docs/handoff.md).
 

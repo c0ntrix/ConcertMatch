@@ -15,7 +15,7 @@ import {
 import { toast, Toaster } from "sonner";
 import ProfileEditor, { type ProfileDraft } from "./profile-editor";
 import { CITIES, defaultPreferences } from "@/lib/catalog";
-import { matchConcert, rankConcerts } from "@/lib/matching";
+import { distanceLabel, matchConcert, rankConcerts } from "@/lib/matching";
 import type {
   Artist,
   Concert,
@@ -538,9 +538,7 @@ export default function ConcertApp() {
                 recommendations,
               ),
             )
-          : tab === "discovery"
-            ? ranked.filter((m) => m.discovery)
-            : ranked,
+          : ranked,
     [ranked, group, tab, matchingMembers, recommendations],
   );
   async function changeGroup(id: string) {
@@ -894,7 +892,6 @@ export default function ConcertApp() {
               >
                 <TabsList className="view-tabs">
                   <TabsTrigger value="all">Konzerte</TabsTrigger>
-                  <TabsTrigger value="discovery">Entdeckungen</TabsTrigger>
                   <TabsTrigger value="saved">
                     Merkliste{" "}
                     {group.saved.length > 0 && "(" + group.saved.length + ")"}
@@ -1045,9 +1042,7 @@ export default function ConcertApp() {
                       <h2>
                         {tab === "saved"
                           ? "Was kommt in die engere Auswahl?"
-                          : tab === "discovery"
-                            ? "Gerade keine neuen Entdeckungen."
-                            : "Hier ist es gerade still."}
+                          : "Hier ist es gerade still."}
                       </h2>
                       <p>
                         {tab === "saved"
@@ -1276,7 +1271,15 @@ function ConcertRow({
           </a>
         </h2>
         <p className="venue">
-          {c.venue}, {c.city} <span>· {m.distance} km</span>
+          {c.venue}
+          {distanceLabel(m, group.preferences).startsWith("in ")
+            ? ""
+            : ", " + c.city}{" "}
+          <span
+            title={"Luftlinie ab dem Zentrum von " + group.preferences.city}
+          >
+            · {distanceLabel(m, group.preferences)}
+          </span>
         </p>
         <div className="concert-bottom">
           <button
