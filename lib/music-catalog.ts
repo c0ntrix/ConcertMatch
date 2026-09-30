@@ -41,6 +41,11 @@ async function musicBrainz(query: string, limit = 16): Promise<MBArtist[]> {
       headers: { "User-Agent": agent, Accept: "application/json" },
       signal: AbortSignal.timeout(6500),
     });
+    if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+      await response.body?.cancel();
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+      continue;
+    }
     if (!response.ok)
       throw new ApiError(
         "Der Musikkatalog ist gerade ausgelastet. Bitte erneut versuchen.",

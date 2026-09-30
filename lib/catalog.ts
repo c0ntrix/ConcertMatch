@@ -133,6 +133,15 @@ export const ARTISTS: Artist[] = entries.map(([name, genres]) => ({
   name,
   genres,
 }));
+// These are only examples in the empty picker, never a ranking signal.
+export const STARTER_ARTISTS = [
+  "Taylor Swift",
+  "Kendrick Lamar",
+  "Rammstein",
+  "Billie Eilish",
+  "Daft Punk",
+  "AnnenMayKantereit",
+].map((name) => ARTISTS.find((a) => a.name === name)!);
 const places: [string, number, number][] = [
   ["Hamburg", 53.5511, 9.9937],
   ["Berlin", 52.52, 13.405],

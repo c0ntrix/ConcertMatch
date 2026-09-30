@@ -1,5 +1,12 @@
-import { ARTISTS, normalize } from "./catalog";
-import type { Artist, Concert, Member, Match, Preferences } from "./types";
+import { normalize } from "./catalog";
+import type {
+  Artist,
+  Concert,
+  Member,
+  Match,
+  Preferences,
+  Recommendations,
+} from "./types";
 export function genreKey(genre: string): string {
   const key = normalize(genre);
   if (/hiphop|rap|urban/.test(key)) return "hiphop";
@@ -160,14 +167,9 @@ export function prominence(concert: Concert) {
   );
   // ListenBrainz is a community sample, not Spotify's global listener count.
   const audience = listeners
-    ? Math.min(18, Math.max(0, Math.log10(listeners) - 1) * 5)
+    ? Math.min(12, Math.max(0, Math.log10(listeners) - 1) * 4)
     : 0;
-  const known = concert.artists.some((a) =>
-    ARTISTS.some((b) => sameArtist(a, b)),
-  )
-    ? 7
-    : 0;
-  return Math.max(audience, known);
+  return audience;
 }
 
 export function deduplicateConcerts(concerts: Concert[]) {
@@ -175,7 +177,7 @@ export function deduplicateConcerts(concerts: Concert[]) {
   for (const c of concerts) {
     // Upgrades are not independent concerts and may not include admission.
     if (
-      /\b(upgrade|parking|parkplatz|meet ?[&+] ?greet|vip.?package|vip.?paket|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|platinum)\b/i.test(
+      /\b(upgrade|parking|parkplatz|meet ?[&+] ?greet|vip.?package|vip.?paket|loge|logen[ -]?seat|logenticket|box seat|ticketmaster suite|premium (?:seats?|packages?)|hospitality|platinum)\b/i.test(
         c.title,
       )
     )
@@ -206,11 +208,20 @@ export function matchConcert(
   concert: Concert,
   members: Member[],
   prefs: Preferences,
+  recommendations?: Recommendations,
 ): Match {
+  const assessment = recommendations?.[concert.id];
   const scores = members.map((m) => ({
     id: m.id,
     name: m.name,
-    ...affinity(m, concert),
+    ...(affinity(m, concert).score === 100 || !recommendations
+      ? affinity(m, concert)
+      : {
+          score: assessment?.scores[m.id] ?? 0,
+          reason: assessment
+            ? "KI-Einschätzung für deinen Musikgeschmack. " + assessment.reason
+            : "Keine ausreichend passende Empfehlung für dieses Profil.",
+        }),
   }));
   const values = scores.map((m) => m.score);
   const score = values.length
@@ -233,6 +244,7 @@ export function rankConcerts(
   concerts: Concert[],
   members: Member[],
   prefs: Preferences,
+  recommendations?: Recommendations,
 ): Match[] {
   const available = concerts.filter(
     (c) =>
@@ -247,7 +259,7 @@ export function rankConcerts(
           c.price <= prefs.budget)),
   );
   return deduplicateConcerts(available)
-    .map((c) => matchConcert(c, members, prefs))
+    .map((c) => matchConcert(c, members, prefs, recommendations))
     .filter(
       (c) =>
         c.score > 0 &&

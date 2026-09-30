@@ -1,5 +1,5 @@
 import type { Artist, Concert, Member, Preferences } from "./types";
-import { ARTISTS, normalize } from "./catalog";
+import { normalize } from "./catalog";
 import { enrichArtists } from "./music-catalog";
 import { sameArtist, genreKey } from "./matching";
 import { ApiError, cached, config, db, putCache } from "./server";
@@ -43,13 +43,10 @@ const genres = (cs: Classification[] = []) => [
   ),
 ];
 function artist(a: Attraction): Artist {
-  const known = ARTISTS.find((x) => normalize(x.name) === normalize(a.name));
   return {
     id: "tm:" + a.id,
     name: a.name,
-    genres: [
-      ...new Set([...(known?.genres || []), ...genres(a.classifications)]),
-    ],
+    genres: genres(a.classifications),
     url: a.url?.startsWith("https://") ? a.url : undefined,
   };
 }
@@ -210,7 +207,6 @@ async function nearbyConcerts(p: Preferences) {
     geoPoint: geoHash(p.lat, p.lng),
     radius: String(p.radius),
     unit: "km",
-    countryCode: "DE",
     classificationName: "music",
     startDateTime: from + "T00:00:00Z",
     endDateTime: p.to + "T23:59:59Z",
@@ -273,7 +269,11 @@ export async function findConcert(id: string) {
   return c;
 }
 
-export async function searchConcerts(p: Preferences, members: Member[] = []) {
+export async function searchConcerts(
+  p: Preferences,
+  members: Member[] = [],
+  enrich = true,
+) {
   const base = await nearbyConcerts(p);
   if (p.to < new Date().toISOString().slice(0, 10))
     return { ...base, artistMetadata: [] };
@@ -286,13 +286,12 @@ export async function searchConcerts(p: Preferences, members: Member[] = []) {
     }
   const events = [...base.events];
   let partial = false;
-  for (const favorite of favorites.slice(0, 4)) {
+  for (const favorite of favorites.slice(0, 8)) {
     const query = {
       keyword: favorite.name,
       geoPoint: geoHash(p.lat, p.lng),
       radius: String(p.radius),
       unit: "km",
-      countryCode: "DE",
       classificationName: "music",
       startDateTime:
         (p.from < new Date().toISOString().slice(0, 10)
@@ -324,7 +323,7 @@ export async function searchConcerts(p: Preferences, members: Member[] = []) {
       partial = true;
     }
   }
-  const profileMetadata = await enrichArtists(favorites, 2);
+  const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
   const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
   const profiles = members.map((m) => ({
     ...m,
@@ -356,6 +355,7 @@ export async function searchConcerts(p: Preferences, members: Member[] = []) {
     .sort((a, b) => b.priority - a.priority);
   const enriched = await enrichArtists(
     candidates.flatMap((e) => e.event.artists),
+    enrich ? 4 : 0,
   );
   const byId = new Map(enriched.map((a) => [a.id, a]));
   return {

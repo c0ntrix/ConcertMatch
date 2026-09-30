@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
-import { ARTISTS, GENRES, normalize } from "@/lib/catalog";
+import { ARTISTS, STARTER_ARTISTS, GENRES, normalize } from "@/lib/catalog";
 import type { Artist } from "@/lib/types";
 import {
   Combobox,
@@ -36,60 +36,64 @@ export default function ProfileEditor({
   const id = useId();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [remote, setRemote] = useState<Artist[]>([]);
   const input = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [searchNotice, setSearchNotice] = useState("");
   const [retry, setRetry] = useState(0);
   const [added, setAdded] = useState("");
+  const [lookup, setLookup] = useState<{
+    query: string;
+    retry: number;
+    artists: Artist[];
+    notice: string;
+    error: string;
+  } | null>(null);
+  const current = lookup?.query === query && lookup.retry === retry;
+  const remote = current ? lookup.artists : [];
+  const loading = query.trim().length >= 2 && !current;
+  const searchError = current ? lookup.error : "";
+  const searchNotice = current ? lookup.notice : "";
   useEffect(() => {
-    setRemote([]);
-    setSearchError("");
-    setSearchNotice("");
-    if (query.trim().length < 2) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    if (query.trim().length < 2) return;
     const ac = new AbortController();
-    const t = setTimeout(
-      () =>
-        fetch("/api/artists?q=" + encodeURIComponent(query), {
-          signal: ac.signal,
+    const t = setTimeout(() => {
+      void fetch("/api/artists?q=" + encodeURIComponent(query), {
+        signal: ac.signal,
+      })
+        .then(async (r) => {
+          const d = (await r.json()) as {
+            artists: Artist[];
+            notice?: string;
+            error?: string;
+          };
+          if (!r.ok)
+            throw new Error(
+              d.error || "Die Suche ist gerade nicht erreichbar.",
+            );
+          if (!ac.signal.aborted)
+            setLookup({
+              query,
+              retry,
+              artists: d.artists,
+              notice: d.notice || "",
+              error: "",
+            });
         })
-          .then(async (r) => {
-            const d = (await r.json()) as {
-              artists: Artist[];
-              notice?: string;
-              error?: string;
-            };
-            if (!r.ok)
-              throw new Error(
-                d.error || "Die Suche ist gerade nicht erreichbar.",
-              );
-            return d as { artists: Artist[]; notice?: string };
-          })
-          .then((d) => {
-            if (!ac.signal.aborted) {
-              setRemote(d.artists);
-              setSearchNotice(d.notice || "");
-            }
-          })
-          .catch((e) => {
-            if (!ac.signal.aborted) setSearchError(e.message);
-          })
-          .finally(() => {
-            if (!ac.signal.aborted) setLoading(false);
-          }),
-      450,
-    );
+        .catch((e) => {
+          if (!ac.signal.aborted)
+            setLookup({
+              query,
+              retry,
+              artists: [],
+              notice: "",
+              error: e.message,
+            });
+        });
+    }, 450);
     return () => {
       clearTimeout(t);
       ac.abort();
     };
   }, [query, retry]);
-  const local = ARTISTS.filter(
+  const local = (query ? ARTISTS : STARTER_ARTISTS).filter(
     (a) =>
       normalize(a.name).includes(normalize(query)) &&
       !remote.some((b) => normalize(a.name) === normalize(b.name)),
@@ -275,13 +279,14 @@ export default function ProfileEditor({
         {!value.artists.length && !query && (
           <div className="artist-suggestions">
             <span>Zum Beispiel</span>
-            {ARTISTS.slice(index === 0 ? 0 : 2, index === 0 ? 3 : 5).map(
-              (a) => (
-                <button type="button" key={a.id} onClick={() => add(a)}>
-                  {a.name}
-                </button>
-              ),
-            )}
+            {STARTER_ARTISTS.slice(
+              index % 2 === 0 ? 0 : 3,
+              index % 2 === 0 ? 3 : 6,
+            ).map((a) => (
+              <button type="button" key={a.id} onClick={() => add(a)}>
+                {a.name}
+              </button>
+            ))}
           </div>
         )}
         {value.artists.some((a) => !a.genres.length) && (
@@ -324,22 +329,19 @@ export default function ProfileEditor({
             })
           }
         />
-        <details className="import-extra">
-          <summary>Du hast schon einen Spotify-Datenexport?</summary>
-          <HistoryImport
-            onImport={(artists) =>
-              onChange({
-                ...value,
-                artists: [
-                  ...value.artists,
-                  ...artists.filter(
-                    (a) => !value.artists.some((b) => sameArtist(a, b)),
-                  ),
-                ].slice(0, 50),
-              })
-            }
-          />
-        </details>
+        <HistoryImport
+          onImport={(artists) =>
+            onChange({
+              ...value,
+              artists: [
+                ...value.artists,
+                ...artists.filter(
+                  (a) => !value.artists.some((b) => sameArtist(a, b)),
+                ),
+              ].slice(0, 50),
+            })
+          }
+        />
         {spotify && (
           <a
             className="text-link spotify-link"

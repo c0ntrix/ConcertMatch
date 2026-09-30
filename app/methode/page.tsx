@@ -24,12 +24,19 @@ export default function Methode() {
       <h2>So entstehen Matchpunkte</h2>
       <p>
         Wir vergleichen jeden auftretenden Künstler mit jeder Person in der
-        Gruppe. Ein Lieblingskünstler bringt dieser Person 100 Punkte. Passende
-        Grundrichtungen wie Pop oder Hip-Hop bringen höchstens 40 Punkte.
-        Gemeinsame konkrete Stile wie Emo-Rap bringen bis zu 82 Punkte.
-        Nebensächliche Genre-Tags zählen weniger als prägende Stilrichtungen.
-        Fehlen passende oder ausreichende Daten, gibt es 0 Punkte – das heißt
-        nicht, dass euch die Musik nicht gefallen könnte.
+        Gruppe. Ein Lieblingskünstler bringt dieser Person 100 Punkte. Zunächst
+        erscheinen Ergebnisse anhand von Favoriten und Genres. Danach beurteilt
+        ein Sprachmodell musikalische Nähe, Klang, Szene und Energie für jede
+        Person separat. Diese Einschätzung berücksichtigt bis zu 20 Favoriten
+        pro Profil und bis zu 180 verschiedene Konzert-Line-ups. Bei sehr langen
+        Eingaben fällt die Auswahl kleiner aus. Das Modell bewertet die bis zu
+        16 geeignetsten Line-ups; Tourtermine desselben Line-ups teilen diese
+        Einschätzung. Ohne Modellbewertung: Passende Grundrichtungen wie Pop
+        oder Hip-Hop bringen höchstens 40 Punkte. Gemeinsame konkrete Stile wie
+        Emo-Rap bringen bis zu 82 Punkte. Nebensächliche Genre-Tags zählen
+        weniger als prägende Stilrichtungen. Fehlen passende oder ausreichende
+        Daten, gibt es 0 Punkte – das heißt nicht, dass euch die Musik nicht
+        gefallen könnte.
       </p>
       <p className="method-formula">
         Gruppenwert = 65 % niedrigster Einzelwert + 35 % Durchschnitt
@@ -43,25 +50,33 @@ export default function Methode() {
       <p>
         Ein Künstler ist „neu für euch“, wenn er in keiner eurer Auswahlen
         vorkommt. Seine Musikrichtungen können trotzdem gut passen. Diese
-        Empfehlungen beruhen auf Genre-Nähe, nicht auf einer Analyse von
-        Audiodateien oder einem trainierten KI-Modell. Im aufklappbaren Ergebnis
-        steht die Einschätzung für jede Person.
+        Empfehlungen beruhen auf musikalischen Metadaten und dem Wissen des
+        Sprachmodells Llama 3.3 bei Cloudflare Workers AI. Es werden keine
+        Audiodateien analysiert und keine Termine vom Modell erzeugt. Im
+        aufklappbaren Ergebnis steht die Einschätzung für jede Person.
       </p>
       <p>
         Breite Genres können ungenau sein. Ein Indie-Label allein sagt wenig
         über die Energie einer Liveshow. Hört deshalb kurz rein und nutzt eure
         Abstimmung. Matchpunkte sind keine Prozentwahrscheinlichkeit.
       </p>
+      <p>
+        Modellwerte reichen bis 92 Punkte; bei unsicherem Wissen höchstens bis
+        45. Das Modell kann sich irren. Bei Ausfällen oder ausgeschöpftem
+        Tageskontingent bleiben die Genre-Ergebnisse verfügbar und sind als
+        vorläufig gekennzeichnet. Die genaue Bewertung erscheint nach dem ersten
+        Laden; die Reihenfolge kann sich dabei ändern. Eure Favoriten bleiben
+        unabhängig davon berücksichtigt.
+      </p>
       <h2>Bekannte Acts und kleine Entdeckungen</h2>
       <p>
         Bei vergleichbarer musikalischer Passung bevorzugen wir bekannte Acts.
         Dafür verwenden wir verfügbare Hörerzahlen der ListenBrainz-Community
-        und einen kleinen Bonus für Künstler aus unserer redaktionellen
-        Startauswahl. Dieser Sortierbonus beträgt höchstens 18 Punkte und
-        verändert die angezeigten Matchpunkte nicht. Eine deutlich passendere
-        kleine Band kann deshalb vor einem großen Act stehen. Ohne musikalische
-        Gemeinsamkeit wird ein Termin nicht allein wegen seiner Bekanntheit
-        empfohlen.
+        ohne Sonderbonus für einzelne Künstlerlisten. Dieser Sortierbonus
+        beträgt höchstens 12 Punkte und verändert die angezeigten Matchpunkte
+        nicht. Eine deutlich passendere kleine Band kann deshalb vor einem
+        großen Act stehen. Ohne musikalische Gemeinsamkeit wird ein Termin nicht
+        allein wegen seiner Bekanntheit empfohlen.
       </p>
       <p>
         Die Hörerzahlen sind keine weltweiten Spotify-Zahlen. Unbekannte Werte
@@ -102,14 +117,14 @@ export default function Methode() {
       </p>
       <h2>Welche Konzerte sind enthalten?</h2>
       <p>
-        Aktuell durchsuchen wir den Ticketmaster-Katalog in Deutschland, für bis
-        zu 300 km Luftlinie um euren Startort. Clubshows und andere
-        Ticketanbieter sind nicht vollständig abgedeckt. Bei sehr vielen
-        Terminen berücksichtigen wir bis zu 800 nach Ticketmaster-Relevanz
-        sortierte Termine im gewählten Zeitraum. Zusätzlich suchen wir gezielt
-        nach bis zu vier Favoriten, abwechselnd aus euren Profilen. Die Auswahl
-        bleibt begrenzt; fehlende Treffer bedeuten nicht, dass es keine Tour
-        gibt.
+        Wir durchsuchen den Ticketmaster-Katalog im gewählten Umkreis bis zu
+        1.000 km Luftlinie, auch über Landesgrenzen hinweg. Startorte liegen
+        derzeit in Deutschland. Clubshows und andere Ticketanbieter sind nicht
+        vollständig abgedeckt. Bei sehr vielen Terminen berücksichtigen wir bis
+        zu 800 nach Ticketmaster-Relevanz sortierte Termine im gewählten
+        Zeitraum. Zusätzlich suchen wir gezielt nach bis zu acht Favoriten,
+        abwechselnd aus euren Profilen. Die Auswahl bleibt begrenzt; fehlende
+        Treffer bedeuten nicht, dass es keine Tour gibt.
       </p>
       <p>
         Die Entfernung ist keine Fahrstrecke. Die Preisgrenze berücksichtigt

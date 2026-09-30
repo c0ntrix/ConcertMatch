@@ -27,6 +27,11 @@ export async function DELETE(request: Request) {
   return api(request, async (ctx) => {
     await rate(ctx, "privacy-write", 5);
     await db().batch([
+      db()
+        .prepare(
+          "DELETE FROM cache WHERE EXISTS(SELECT 1 FROM groups g LEFT JOIN members m ON m.group_id=g.id WHERE (g.owner=? OR m.owner=?) AND instr(cache.key,'recommendations:' || g.id || ':')=1)",
+        )
+        .bind(ctx.owner, ctx.owner),
       db().prepare("DELETE FROM groups WHERE owner=?").bind(ctx.owner),
       db().prepare("DELETE FROM members WHERE owner=?").bind(ctx.owner),
       db().prepare("DELETE FROM oauth WHERE owner=?").bind(ctx.owner),

@@ -67,3 +67,11 @@ export type Match = {
   discovery: boolean;
   members: { id: string; name: string; score: number; reason: string }[];
 };
+export type Recommendations = Record<
+  string,
+  {
+    scores: Record<string, number>;
+    reason: string;
+    confidence: "high" | "medium" | "low";
+  }
+>;

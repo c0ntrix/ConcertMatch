@@ -56,7 +56,7 @@ export default function HistoryImport({
         className="text-link history-link"
         onClick={() => setOpen(true)}
       >
-        <Upload size={13} /> Hörverlauf importieren
+        <Upload size={13} /> Spotify-Verlauf importieren
       </button>
       {summary && (
         <p className="import-summary" role="status">

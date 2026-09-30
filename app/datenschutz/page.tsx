@@ -8,7 +8,7 @@ export default function Datenschutz() {
         ← Zur Konzertsuche
       </a>
       <h1>Datenschutz</h1>
-      <p>Stand: 27. September 2026</p>
+      <p>Stand: 30. September 2026</p>
       <h2>Verantwortlich</h2>
       <p>
         TiCore, Tilo Will, Hankhauser Weg 40, 26180 Rastede, Deutschland.
@@ -74,6 +74,37 @@ export default function Datenschutz() {
         </a>
         .
       </p>
+      <h2>Künstlersuche und Musikdaten</h2>
+      <p>
+        Für die Künstlersuche und zur Ergänzung musikalischer Stilrichtungen
+        übermittelt unser Server eingegebene Künstlernamen an MusicBrainz
+        (MetaBrainz Foundation), bei Ausfällen an Apples iTunes-Suche. Für
+        öffentlich verfügbare Hörerzahlen werden Künstlerkennungen an
+        ListenBrainz (MetaBrainz Foundation) gesendet. Es werden dabei keine
+        Gruppennamen, Browserkennungen, Kontaktangaben oder Zuordnungen zu
+        Personen übermittelt. Dies dient der von euch angeforderten Suche und
+        Empfehlung. Öffentliche Künstlerdaten speichern wir bis zu sieben Tage
+        zwischen. Mehr Informationen:{" "}
+        <a href="https://metabrainz.org/privacy">MetaBrainz-Datenschutz</a> und{" "}
+        <a href="https://www.apple.com/legal/privacy/">Apple-Datenschutz</a>.
+      </p>
+      <h2>Musikalische Empfehlungen mit KI</h2>
+      <p>
+        Für die vertiefte Empfehlung verarbeitet Cloudflare Workers AI die
+        gewählten Künstler und Genres je Profil sowie eine Auswahl tatsächlicher
+        Konzert-Line-ups. Profil- und Gruppennamen, Kontaktangaben,
+        Browserkennungen und Suchort werden nicht in die Modellanfrage
+        aufgenommen. Die Verarbeitung dient eurer angefragten gemeinsamen
+        Konzertempfehlung (Art. 6 Abs. 1 lit. b DSGVO). Wir speichern
+        Bewertungen und Begründungen für eure Gruppe bis zu 24 Stunden zwischen;
+        beim Entfernen eines Profils oder Löschen der Gruppe werden sie
+        gelöscht. Cloudflare verwendet die Inhalte laut seinen Bedingungen nicht
+        zum Modelltraining ohne ausdrückliche Zustimmung. Mehr dazu:{" "}
+        <a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/">
+          Workers AI und eure Daten
+        </a>
+        .
+      </p>
       <h2>Konzertdaten und externe Links</h2>
       <p>
         Unser Server ruft Konzertdaten von Ticketmaster ab. Dabei werden
@@ -93,26 +124,17 @@ export default function Datenschutz() {
       </p>
       <h2>Hosting und technische Sicherheit</h2>
       <p>
-        Der Dienst wird über OpenAI Sites auf Cloudflare-Infrastruktur
-        bereitgestellt. Technisch erforderliche Verbindungsdaten, insbesondere
-        IP-Adresse und Zeitpunkt eines Aufrufs, werden dabei zur Auslieferung
-        und Absicherung verarbeitet. ConcertMatch nutzt kurzzeitig gehashte
-        Kennungen für Anfragelimits. Grundlage hierfür ist unser berechtigtes
-        Interesse an einem sicheren, verfügbaren Dienst (Art. 6 Abs. 1 lit. f
-        DSGVO).
+        Der Dienst wird bei Cloudflare, Inc., 101 Townsend St, San Francisco, CA
+        94107, USA, bereitgestellt. Technisch erforderliche Verbindungsdaten,
+        insbesondere IP-Adresse und Zeitpunkt eines Aufrufs, werden dabei zur
+        Auslieferung und Absicherung verarbeitet. ConcertMatch nutzt kurzzeitig
+        gehashte Kennungen für Anfragelimits. Grundlage hierfür ist unser
+        berechtigtes Interesse an einem sicheren, verfügbaren Dienst (Art. 6
+        Abs. 1 lit. f DSGVO).
       </p>
       <p>
-        Die eingesetzten Plattformanbieter können Daten auch außerhalb der EU
-        verarbeiten. Informationen zu deren Datenschutz und
-        Übermittlungsmechanismen findest du bei{" "}
-        <a
-          href="https://openai.com/policies/privacy-policy/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          OpenAI
-        </a>{" "}
-        und{" "}
+        Cloudflare kann Daten auch außerhalb der EU verarbeiten. Informationen
+        zu Datenschutz und Übermittlungsmechanismen findest du bei{" "}
         <a
           href="https://www.cloudflare.com/privacypolicy/"
           target="_blank"

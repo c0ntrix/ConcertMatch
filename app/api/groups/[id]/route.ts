@@ -34,6 +34,56 @@ export async function POST(
     const g = await groupRow(id, ctx.owner);
     const input = await body(request);
     switch (input.action) {
+      case "selection": {
+        const selected = z
+          .object({
+            profiles: z
+              .array(
+                z.object({
+                  memberId: z.string().uuid(),
+                  profile: profileSchema,
+                }),
+              )
+              .min(1)
+              .max(8)
+              .refine(
+                (ps) => new Set(ps.map((p) => p.memberId)).size === ps.length,
+              ),
+            preferences: preferencesSchema,
+          })
+          .parse(input);
+        const owned = await db()
+          .prepare("SELECT id FROM members WHERE group_id=? AND owner=?")
+          .bind(id, ctx.owner)
+          .all<{ id: string }>();
+        const ids = new Set(owned.results.map((m) => m.id));
+        if (selected.profiles.some((p) => !ids.has(p.memberId)))
+          throw new ApiError("Du kannst nur eigene Profile bearbeiten.", 403);
+        // One transaction preserves group/member identities, invitations, saves and votes.
+        await db().batch([
+          ...selected.profiles.map(({ memberId, profile: p }) =>
+            db()
+              .prepare(
+                "UPDATE members SET name=?,artists=?,genres=? WHERE id=? AND group_id=? AND owner=?",
+              )
+              .bind(
+                p.name,
+                JSON.stringify(p.artists),
+                JSON.stringify(p.genres),
+                memberId,
+                id,
+                ctx.owner,
+              ),
+          ),
+          db()
+            .prepare("UPDATE groups SET preferences=? WHERE id=?")
+            .bind(JSON.stringify(selected.preferences), id),
+          db()
+            .prepare("DELETE FROM cache WHERE instr(key,?)=1")
+            .bind("recommendations:" + id + ":"),
+        ]);
+        break;
+      }
       case "profile": {
         const p = profileSchema.parse(input.profile);
         const memberId = z.string().uuid().parse(input.memberId);
@@ -97,6 +147,10 @@ export async function POST(
           .prepare("SELECT id FROM members WHERE group_id=? AND owner=?")
           .bind(id, ctx.owner)
           .first();
+        await db()
+          .prepare("DELETE FROM cache WHERE instr(key,?)=1")
+          .bind("recommendations:" + id + ":")
+          .run();
         if (!remaining && g.owner !== ctx.owner) return { left: true };
         break;
       }
@@ -191,7 +245,12 @@ export async function POST(
             "Nur die erstellende Person kann diese Gruppe löschen.",
             403,
           );
-        await db().prepare("DELETE FROM groups WHERE id=?").bind(id).run();
+        await db().batch([
+          db()
+            .prepare("DELETE FROM cache WHERE instr(key,?)=1")
+            .bind("recommendations:" + id + ":"),
+          db().prepare("DELETE FROM groups WHERE id=?").bind(id),
+        ]);
         return { deleted: true };
       }
       default:

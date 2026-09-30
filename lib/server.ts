@@ -248,7 +248,7 @@ export const preferencesSchema = z
     city: z.string().trim().min(1).max(80),
     lat: z.number().min(47).max(55.2),
     lng: z.number().min(5.5).max(15.5),
-    radius: z.number().int().min(10).max(300),
+    radius: z.number().int().min(10).max(1000),
     from: isoDate,
     to: isoDate,
     budget: z.number().int().min(0).max(500),

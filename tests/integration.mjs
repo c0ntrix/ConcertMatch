@@ -171,6 +171,43 @@ try {
       (v) => v.memberId === own.id && v.value === "yes",
     ),
   );
+  const selectedPreferences = { ...vote.data.group.preferences, radius: 500 };
+  const foreignSelection = await b("/api/groups/" + id, {
+    action: "selection",
+    profiles: [
+      { memberId: own.id, profile: profile("Must not partially save") },
+      { memberId: alex.id, profile: profile("Hijacked") },
+    ],
+    preferences: selectedPreferences,
+  });
+  assert.equal(foreignSelection.status, 403);
+  const unchanged = await b("/api/groups/" + id);
+  assert.equal(
+    unchanged.data.group.members.find((m) => m.id === own.id).name,
+    "Taylor updated",
+  );
+  assert.equal(
+    unchanged.data.group.preferences.radius,
+    vote.data.group.preferences.radius,
+  );
+  const reselected = await b("/api/groups/" + id, {
+    action: "selection",
+    profiles: [{ memberId: own.id, profile: profile("Taylor reselected") }],
+    preferences: selectedPreferences,
+  });
+  assert.equal(reselected.status, 200, JSON.stringify(reselected.data));
+  assert.equal(reselected.data.group.id, id);
+  assert.equal(reselected.data.group.preferences.radius, 500);
+  assert.equal(
+    reselected.data.group.members.find((m) => m.id === own.id).name,
+    "Taylor reselected",
+  );
+  assert.deepEqual(reselected.data.group.saved, vote.data.group.saved);
+  assert.deepEqual(reselected.data.group.votes, vote.data.group.votes);
+  assert.deepEqual(
+    reselected.data.group.members.map((m) => m.id),
+    vote.data.group.members.map((m) => m.id),
+  );
   const exp = await b("/api/privacy");
   assert.equal(exp.status, 200);
   assert.equal(exp.data.profiles[0].members.length, 1);
