@@ -346,9 +346,13 @@ export default function ProfileEditor({
           <a
             className="text-link spotify-link"
             href="/api/spotify/start"
-            onClick={() =>
-              sessionStorage.setItem("cm_spotify_draft", JSON.stringify(value))
-            }
+            onClick={() => {
+              sessionStorage.setItem("cm_spotify_draft", JSON.stringify(value));
+              sessionStorage.setItem(
+                "cm_spotify_group",
+                new URL(location.href).searchParams.get("group") || "",
+              );
+            }}
           >
             Favoriten aus Spotify übernehmen
           </a>

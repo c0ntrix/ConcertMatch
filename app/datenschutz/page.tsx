@@ -32,6 +32,12 @@ export default function Datenschutz() {
         gewünschten Dienst erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Ohne dieses
         Cookie können wir keine dauerhaft nutzbare Gruppe zuordnen.
       </p>
+      <p>
+        Beim normalen Öffnen der Startseite wird keine frühere Suche automatisch
+        angezeigt. Du kannst sie gezielt über „Meine Suchen“ wieder öffnen. Ein
+        direkter Link zu einer Suche öffnet diese weiterhin, wenn dein Browser
+        darauf zugreifen darf.
+      </p>
       <h2>Wer die Angaben sehen kann</h2>
       <p>
         Du kannst ConcertMatch mit einem einzelnen Profil nutzen. Deine Suche

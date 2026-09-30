@@ -234,10 +234,15 @@ export default function ConcertApp() {
       );
       history.replaceState(null, "", "/?join=" + encodeURIComponent(join));
     }
-    // Restore the browser session through the external state endpoint, including its loading state.
+    const spotifyReturn = url.searchParams.has("spotify");
+    const spotifyGroup = spotifyReturn
+      ? sessionStorage.getItem("cm_spotify_group")
+      : null;
+    // Restore only an explicitly selected search, including an intentional Spotify return.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadState(url.searchParams.get("group") || undefined).then(
+    void loadState(url.searchParams.get("group") || spotifyGroup || undefined).then(
       (restored) => {
+        if (spotifyReturn) sessionStorage.removeItem("cm_spotify_group");
         if (restored?.group && url.searchParams.get("edit") === "1") {
           setSelectionMemberIds(restored.group.members.map((m) => m.id));
           setProfiles(
@@ -283,12 +288,20 @@ export default function ConcertApp() {
               );
             })
             .catch((e) => toast.error(e.message));
-          history.replaceState(null, "", "/");
+          history.replaceState(
+            null,
+            "",
+            restored?.group ? "/?group=" + restored.group.id : "/",
+          );
         } else if (url.searchParams.get("spotify") === "error") {
           toast.error(
             "Spotify konnte nicht verbunden werden. Nutze die Künstlerauswahl oder versuche es erneut.",
           );
-          history.replaceState(null, "", "/");
+          history.replaceState(
+            null,
+            "",
+            restored?.group ? "/?group=" + restored.group.id : "/",
+          );
         }
       },
     );
