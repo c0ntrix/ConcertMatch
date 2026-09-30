@@ -1,11 +1,12 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Impressum · ConcertMatch" };
 export default function Impressum() {
   return (
     <main className="legal-content">
-      <a className="back-link" href="/">
+      <Link className="back-link" href="/">
         ← Zur Konzertsuche
-      </a>
+      </Link>
       <h1>Impressum</h1>
       <h2>Angaben zum Anbieter</h2>
       <address>
@@ -25,10 +26,11 @@ export default function Impressum() {
       </p>
       <h2>Zum Angebot</h2>
       <p>
-        ConcertMatch hilft bei der gemeinsamen Konzertauswahl. Tickets werden
-        ausschließlich über die verlinkten Veranstalter und Ticketanbieter
-        erworben. ConcertMatch ist weder Veranstalter noch Ticketverkäufer.
-        Maßgeblich sind die aktuellen Angaben des jeweiligen Anbieters.
+        ConcertMatch hilft bei der persönlichen und gemeinsamen Konzertauswahl.
+        Tickets werden ausschließlich über die verlinkten Veranstalter und
+        Ticketanbieter erworben. ConcertMatch ist weder Veranstalter noch
+        Ticketverkäufer. Maßgeblich sind die aktuellen Angaben des jeweiligen
+        Anbieters.
       </p>
       <h2>Quellen</h2>
       <p>

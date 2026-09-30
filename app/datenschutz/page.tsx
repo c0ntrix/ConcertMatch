@@ -1,12 +1,13 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import PrivacyControls from "./privacy-controls";
 export const metadata: Metadata = { title: "Datenschutz · ConcertMatch" };
 export default function Datenschutz() {
   return (
     <main className="legal-content">
-      <a className="back-link" href="/">
+      <Link className="back-link" href="/">
         ← Zur Konzertsuche
-      </a>
+      </Link>
       <h1>Datenschutz</h1>
       <p>Stand: 30. September 2026</p>
       <h2>Verantwortlich</h2>
@@ -32,6 +33,12 @@ export default function Datenschutz() {
         Cookie können wir keine dauerhaft nutzbare Gruppe zuordnen.
       </p>
       <h2>Wer die Angaben sehen kann</h2>
+      <p>
+        Du kannst ConcertMatch mit einem einzelnen Profil nutzen. Deine Suche
+        und Merkliste sind dann nur diesem Browser zugeordnet. Eine Suche mit
+        weiteren Personen entsteht erst, wenn du selbst ein Profil hinzufügst
+        oder jemand über deinen Einladungslink beitritt.
+      </p>
       <p>
         Die Mitglieder deiner Gruppe sehen eure Namen, Künstler, Filter,
         Merkliste und Abstimmungen. Wer einen gültigen Einladungslink hat, kann
