@@ -309,19 +309,36 @@ export function rankConcerts(
 // Keep actual dates intact for tickets, saving and voting; group only the view.
 export function groupTourMatches(matches: Match[]): Match[] {
   const tours = new Map<string, Match[]>();
+  const identities = new Map<string, Set<string>>();
+  for (const { concert } of matches) {
+    const act = concert.artists[0];
+    if (!act?.mbid) continue;
+    const name = normalize(act.name);
+    const ids = identities.get(name) || new Set<string>();
+    ids.add(act.mbid);
+    identities.set(name, ids);
+  }
   for (const match of matches) {
     const c = match.concert;
     const headliner = c.artists[0];
     // Provider titles differ between countries, so ordinary dates group by act.
     // Distinct acoustic/DJ/festival programmes and co-headlined bills stay separate.
-    const identity = headliner?.mbid || normalize(headliner?.name || c.title);
+    const name = normalize(headliner?.name || c.title);
+    // Missing metadata on one date must not split the same artist into two tours.
+    const identity =
+      (identities.get(name)?.size || 0) > 1 ? headliner?.mbid || name : name;
     const distinctProgramme =
       /\b(acoustic|unplugged|orchestr(?:al|a)|symphonic|festival|dj set)\b/i.test(
         c.title,
       );
     const coHeadlined = c.artists
       .slice(1)
-      .some((a) => normalize(c.title).includes(normalize(a.name)));
+      .some(
+        (a) =>
+          Boolean(normalize(a.name)) &&
+          !sameArtist(a, headliner) &&
+          normalize(c.title).includes(normalize(a.name)),
+      );
     const programme =
       !headliner || distinctProgramme || coHeadlined
         ? normalize(c.title)
@@ -330,7 +347,24 @@ export function groupTourMatches(matches: Match[]): Match[] {
     tours.set(key, [...(tours.get(key) || []), match]);
   }
   return [...tours.values()].map((dates) => {
-    const ordered = [...dates].sort(
+    const uniqueDates = new Map<string, Match>();
+    const restrictedOffer = (m: Match) =>
+      /\b(vip|posti riservati|reserved seats?|presale|pre-sale|cardholder|mastercard)\b/i.test(
+        m.concert.title,
+      );
+    for (const date of dates) {
+      const c = date.concert;
+      const key = [
+        c.date,
+        c.time || "",
+        normalize(c.city),
+        normalize(c.venue),
+      ].join(":");
+      const previous = uniqueDates.get(key);
+      if (!previous || (restrictedOffer(previous) && !restrictedOffer(date)))
+        uniqueDates.set(key, date);
+    }
+    const ordered = [...uniqueDates.values()].sort(
       (a, b) =>
         b.score - a.score ||
         a.distance - b.distance ||

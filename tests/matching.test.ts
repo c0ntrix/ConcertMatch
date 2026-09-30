@@ -290,3 +290,30 @@ test("premium ticket variants and fan celebrations do not masquerade as separate
     [juice.id],
   );
 });
+
+test("tour grouping tolerates partial metadata, repeated headliners and reserved-seat offers", () => {
+  const a = artist("Example Artist", ["emo rap"]);
+  const b = { ...a, id: "provider:other", mbid: "known-identity" };
+  const dates = [
+    concert(a, {
+      id: "reserved",
+      title: "Example Artist - Tour - Posti Riservati Mastercard",
+      artists: [a, a],
+      date: p.from,
+    }),
+    concert(b, { id: "regular", title: "Example Artist - Tour", date: p.from }),
+    concert(a, {
+      id: "other-city",
+      title: "Example Artist - Tour",
+      city: "Berlin",
+      venue: "Arena",
+    }),
+  ].map((c) => matchConcert(c, members, p));
+  const grouped = groupTourMatches(dates);
+  assert.equal(grouped.length, 1);
+  assert.equal(grouped[0].alternatives?.length, 2);
+  assert.deepEqual(
+    new Set(grouped[0].alternatives?.map((m) => m.concert.id)),
+    new Set(["regular", "other-city"]),
+  );
+});
