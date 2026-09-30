@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "ConcertMatch – Euer nächstes Konzert",
+  title: "ConcertMatch – Dein nächstes Konzert",
   description:
-    "Findet Konzerte, die euch zusammen gefallen. Musikgeschmack vergleichen, Neues entdecken und gemeinsam entscheiden.",
+    "Finde Konzerte, die zu deinem Musikgeschmack passen. Allein entdecken oder mit Freunden gemeinsame Favoriten finden.",
   icons: { icon: "/favicon.svg" },
   robots: { index: true, follow: true },
 };

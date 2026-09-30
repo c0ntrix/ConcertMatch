@@ -159,7 +159,6 @@ export default function ConcertApp() {
     [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
   const [profiles, setProfiles] = useState<ProfileDraft[]>([
     emptyProfile("Du"),
-    emptyProfile("Person 2"),
   ]);
   const [prefs, setPrefs] = useState<Preferences>(defaultPreferences);
   const [artistMetadata, setArtistMetadata] = useState<Artist[]>([]);
@@ -240,10 +239,15 @@ export default function ConcertApp() {
       );
       history.replaceState(null, "", "/?join=" + encodeURIComponent(join));
     }
-    // Restore the browser session through the external state endpoint, including its loading state.
+    const spotifyReturn = url.searchParams.has("spotify");
+    const spotifyGroup = spotifyReturn
+      ? sessionStorage.getItem("cm_spotify_group")
+      : null;
+    // Restore only an explicitly selected search, including an intentional Spotify return.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadState(url.searchParams.get("group") || undefined).then(
+    void loadState(url.searchParams.get("group") || spotifyGroup || undefined).then(
       (restored) => {
+        if (spotifyReturn) sessionStorage.removeItem("cm_spotify_group");
         if (restored?.group && url.searchParams.get("edit") === "1") {
           setSelectionMemberIds(restored.group.members.map((m) => m.id));
           setProfiles(
@@ -281,7 +285,7 @@ export default function ConcertApp() {
                 setProfiles([imported]);
                 setEdit(true);
               } else {
-                setProfiles([imported, emptyProfile("Person 2")]);
+                setProfiles([imported]);
                 setEdit(false);
               }
               toast.success(
@@ -289,12 +293,20 @@ export default function ConcertApp() {
               );
             })
             .catch((e) => toast.error(e.message));
-          history.replaceState(null, "", "/");
+          history.replaceState(
+            null,
+            "",
+            restored?.group ? "/?group=" + restored.group.id : "/",
+          );
         } else if (url.searchParams.get("spotify") === "error") {
           toast.error(
             "Spotify konnte nicht verbunden werden. Nutze die Künstlerauswahl oder versuche es erneut.",
           );
-          history.replaceState(null, "", "/");
+          history.replaceState(
+            null,
+            "",
+            restored?.group ? "/?group=" + restored.group.id : "/",
+          );
         }
       },
     );
@@ -349,6 +361,8 @@ export default function ConcertApp() {
       if (isCurrent()) setSearching(false);
     }
   }, []);
+  const solo = group?.members.length === 1;
+  const soloDraft = profiles.length === 1;
   const groupId = group?.id;
   const prefsKey = group ? JSON.stringify(group.preferences) : "";
   const tasteKey = group
@@ -413,7 +427,11 @@ export default function ConcertApp() {
   async function start(inviteOnly = false) {
     const selected = inviteOnly ? [profiles[0]] : profiles;
     if (selected.some((p) => !p.name.trim() || !p.artists.length)) {
-      setError("Wählt für jede Person mindestens einen Lieblingskünstler aus.");
+      setError(
+        selected.length === 1
+          ? "Wähle mindestens einen Lieblingskünstler aus und gib einen Namen an."
+          : "Wählt für jede Person mindestens einen Lieblingskünstler aus.",
+      );
       return;
     }
     if (editingSelection && group) {
@@ -431,7 +449,7 @@ export default function ConcertApp() {
         setError("");
         history.replaceState(null, "", "/?group=" + d.group.id);
         window.scrollTo({ top: 0 });
-        toast.success("Auswahl gespeichert. Eure Merkliste bleibt erhalten.");
+        toast.success("Auswahl gespeichert. Die Merkliste bleibt erhalten.");
       }
       return;
     }
@@ -445,10 +463,10 @@ export default function ConcertApp() {
         sessionStorage.removeItem("cm_join");
       } else {
         d = await api("/api/groups", {
-          name: selected
-            .map((p) => p.name)
-            .join(" & ")
-            .slice(0, 60),
+          name: (selected.length === 1
+            ? "Meine Konzerte · " + prefs.city
+            : selected.map((p) => p.name).join(" & ")
+          ).slice(0, 60),
           profiles: selected,
           preferences: prefs,
         });
@@ -592,7 +610,7 @@ export default function ConcertApp() {
     setSearching(false);
     setLoadError("");
     setGroup(null);
-    setProfiles([emptyProfile("Du"), emptyProfile("Person 2")]);
+    setProfiles([emptyProfile("Du")]);
     setPrefs(defaultPreferences());
     setError("");
     setInvite("");
@@ -668,10 +686,10 @@ export default function ConcertApp() {
           {groups.length > 0 && (
             <Select value={group?.id || ""} onValueChange={changeGroup}>
               <SelectTrigger
-                aria-label="Gespeicherte Gruppen"
+                aria-label="Gespeicherte Konzertsuche"
                 className="group-picker"
               >
-                <SelectValue placeholder="Meine Gruppen" />
+                <SelectValue placeholder="Meine Suchen" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
@@ -696,7 +714,9 @@ export default function ConcertApp() {
             {editingSelection && (
               <p className="back-link selection-back">
                 <button onClick={returnToResults} disabled={busy}>
-                  Zurück zu euren Konzerten
+                  {solo
+                    ? "Zurück zu deinen Konzerten"
+                    : "Zurück zu euren Konzerten"}
                 </button>
               </p>
             )}
@@ -706,16 +726,18 @@ export default function ConcertApp() {
                   "Schön, dass du mitkommst."
                 ) : (
                   <>
-                    Ein Konzert, auf das
+                    Konzerte, die zu
                     <br />
-                    ihr alle Lust habt.
+                    {soloDraft ? "dir passen." : "euch passen."}
                   </>
                 )}
               </h1>
               <p>
                 {joining
                   ? "Ergänze deinen Musikgeschmack für eure gemeinsame Auswahl."
-                  : "Was hört ihr gern? Wählt ein paar Künstler. Wir suchen die passenden Konzerte."}
+                  : soloDraft
+                    ? "Was hörst du gern? Wähle ein paar Künstler. Wir finden passende Konzerte – für dich oder mit Freunden."
+                    : "Was hört ihr gern? Wählt ein paar Künstler. Wir finden Konzerte, die euch allen gefallen könnten."}
               </p>
             </section>
             {loadError && (
@@ -752,7 +774,7 @@ export default function ConcertApp() {
                       setProfiles((ps) => ps.map((x, j) => (j === i ? v : x)))
                     }
                     onRemove={
-                      !editingSelection && profiles.length > 2
+                      !editingSelection && profiles.length > 1 && i > 0
                         ? () =>
                             setProfiles((ps) => ps.filter((_, j) => j !== i))
                         : undefined
@@ -776,7 +798,10 @@ export default function ConcertApp() {
                           ])
                         }
                       >
-                        <Plus size={16} /> Weitere Person
+                        <Plus size={16} />
+                        {soloDraft
+                          ? "Mit Freunden suchen"
+                          : "Person hinzufügen"}
                       </button>
                       <button
                         type="button"
@@ -784,7 +809,7 @@ export default function ConcertApp() {
                         disabled={busy || !profiles[0]?.artists.length}
                         onClick={() => void start(true)}
                       >
-                        Lieber per Link einladen
+                        Per Link einladen
                       </button>
                     </div>
                   )}
@@ -826,8 +851,12 @@ export default function ConcertApp() {
               </div>
               <p className="form-privacy">
                 {editingSelection
-                  ? "Änderungen werden erst beim Speichern übernommen. Gruppe, Einladungslink und Merkliste bleiben erhalten."
-                  : "Eure Auswahl wird für 90 Tage gespeichert. Mit dem Gruppenlink teilt ihr eure Lieblingskünstler."}{" "}
+                  ? "Änderungen werden erst beim Speichern übernommen. Deine Suche, Einladungen und Merkliste bleiben erhalten."
+                  : joining
+                    ? "Mit deinem Beitritt teilst du deine Auswahl mit der Gruppe. Eure Suche bleibt 90 Tage gespeichert."
+                    : soloDraft
+                      ? "Deine Auswahl und Merkliste bleiben 90 Tage gespeichert. Andere können erst über einen Einladungslink beitreten."
+                      : "Eure Auswahl bleibt 90 Tage gespeichert. Per Einladungslink können weitere Personen mitmachen."}{" "}
                 <a href="/datenschutz">Mehr zum Datenschutz</a>
               </p>
             </form>
@@ -841,9 +870,9 @@ export default function ConcertApp() {
                     Auswahl bearbeiten
                   </button>
                   <span aria-hidden="true"> · </span>
-                  <button onClick={reset}>Neue Gruppe</button>
+                  <button onClick={reset}>Neue Suche</button>
                 </p>
-                <h1>Eure Konzerte.</h1>
+                <h1>{solo ? "Deine Konzerte." : "Eure Konzerte."}</h1>
                 <p>
                   {group.members.map((m) => m.name).join(", ")} ·{" "}
                   {group.preferences.city} + {group.preferences.radius} km
@@ -851,7 +880,8 @@ export default function ConcertApp() {
               </div>
               {group.owner && (
                 <button className="secondary" onClick={share} disabled={busy}>
-                  <LinkIcon size={16} /> Einladen
+                  <LinkIcon size={16} />{" "}
+                  {solo ? "Freunde einladen" : "Einladen"}
                 </button>
               )}
             </section>
@@ -881,12 +911,6 @@ export default function ConcertApp() {
                 </button>
               )}
             </div>
-            {group.members.length === 1 && (
-              <p className="message">
-                Noch bist du allein in der Runde. Lade jemanden ein oder ergänze
-                ein zweites Profil für gemeinsame Matches.
-              </p>
-            )}
             <div className="results-tools">
               <Tabs
                 value={tab}
@@ -1015,7 +1039,9 @@ export default function ConcertApp() {
                         {shown.length}{" "}
                         {shown.length === 1 ? "Konzert" : "Konzerte"}
                         {tab !== "saved" &&
-                          " · nach gemeinsamem Musikgeschmack"}
+                          (solo
+                            ? " · nach deinem Musikgeschmack"
+                            : " · nach gemeinsamem Musikgeschmack")}
                       </div>
                       <div className="concert-list">
                         {shown.slice(0, visible).map((m) => (
@@ -1039,7 +1065,11 @@ export default function ConcertApp() {
                     </>
                   ) : refining && tab !== "saved" ? (
                     <div className="loading-results">
-                      <p>Wir prüfen noch, welche Acts zu euch allen passen …</p>
+                      <p>
+                        {solo
+                          ? "Wir prüfen noch, welche Acts zu dir passen …"
+                          : "Wir prüfen noch, welche Acts zu euch allen passen …"}
+                      </p>
                       <Skeleton className="result-skeleton" />
                     </div>
                   ) : (
@@ -1051,8 +1081,10 @@ export default function ConcertApp() {
                       </h2>
                       <p>
                         {tab === "saved"
-                          ? "Merkt euch Konzerte mit dem Lesezeichen. Hier könnt ihr gemeinsam abstimmen."
-                          : "Versucht einen größeren Umkreis oder Zeitraum. Auch weniger enge Preisfilter können helfen."}
+                          ? solo
+                            ? "Merke interessante Konzerte mit dem Lesezeichen. Hier findest du sie später wieder."
+                            : "Merkt euch Konzerte mit dem Lesezeichen. Hier könnt ihr gemeinsam abstimmen."
+                          : "Versuche einen größeren Umkreis oder Zeitraum. Auch weniger enge Preisfilter können helfen."}
                       </p>
                       <button
                         className="text-link"
@@ -1074,7 +1106,9 @@ export default function ConcertApp() {
               {tab !== "saved" && (
                 <p role="status">
                   {refining
-                    ? "Euer Musikgeschmack wird noch genauer abgeglichen …"
+                    ? solo
+                      ? "Dein Musikgeschmack wird noch genauer abgeglichen …"
+                      : "Euer Musikgeschmack wird noch genauer abgeglichen …"
                     : recommendationNotice}
                 </p>
               )}
@@ -1096,7 +1130,7 @@ export default function ConcertApp() {
                 className="text-link delete-group"
                 onClick={() => setConfirmDelete(true)}
               >
-                Gruppe löschen
+                {solo ? "Suche löschen" : "Gruppe löschen"}
               </button>
             )}
           </>
@@ -1126,7 +1160,7 @@ export default function ConcertApp() {
           <button className="primary" disabled={busy} onClick={saveProfile}>
             Speichern
           </button>
-          {editingMember && (
+          {editingMember && group && group.members.length > 1 && (
             <button
               className="text-link"
               disabled={busy}
@@ -1196,10 +1230,14 @@ export default function ConcertApp() {
       </Dialog>
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
-          <AlertDialogTitle>Diese Gruppe löschen?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {solo ? "Diese Suche löschen?" : "Diese Gruppe löschen?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Alle Profile, gemerkten Konzerte und Abstimmungen dieser Gruppe
-            werden entfernt. Das kann nicht rückgängig gemacht werden.
+            {solo
+              ? "Dein Profil und alle gemerkten Konzerte dieser Suche werden entfernt."
+              : "Alle Profile, gemerkten Konzerte und Abstimmungen dieser Gruppe werden entfernt."}
+            Das kann nicht rückgängig gemacht werden.
           </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Behalten</AlertDialogCancel>
@@ -1212,7 +1250,7 @@ export default function ConcertApp() {
                 }
               }}
             >
-              Gruppe löschen
+              {solo ? "Suche löschen" : "Gruppe löschen"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1297,7 +1335,12 @@ function ConcertRow({
             onClick={() => setDetail(!detail)}
             aria-expanded={detail}
           >
-            {m.score} Matchpunkte{m.discovery ? " · Neu für euch" : ""}
+            {m.score} Matchpunkte
+            {m.discovery
+              ? group.members.length === 1
+                ? " · Neu für dich"
+                : " · Neu für euch"
+              : ""}
             <ChevronDown size={14} />
           </button>
           <span className="price">
@@ -1383,8 +1426,9 @@ function ConcertRow({
             </div>
           ))}
           <p className="small-note">
-            Die niedrigste persönliche Passung zählt besonders stark. So
-            überstimmt eine große Fangruppe niemanden.
+            {group.members.length === 1
+              ? "Die Matchpunkte beziehen sich auf deinen eigenen Musikgeschmack."
+              : "Die niedrigste persönliche Passung zählt besonders stark. So überstimmt eine große Fangruppe niemanden."}
           </p>
           <div className="detail-actions">
             <a
@@ -1412,7 +1456,11 @@ function ConcertRow({
           </div>
           {saved && (
             <div className="voting">
-              <h3>Wer ist dabei?</h3>
+              <h3>
+                {group.members.length === 1
+                  ? "Deine Entscheidung"
+                  : "Wer ist dabei?"}
+              </h3>
               {group.members.map((member) => (
                 <div className="vote-line" key={member.id}>
                   <span>{member.name}</span>

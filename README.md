@@ -2,10 +2,12 @@
 
 [Open ConcertMatch](https://concertmatch.ticore.workers.dev/)
 
-Concerts your whole group can agree on. A German-language web app for 2–8 people, built for a simple first visit without an account.
+Find concerts for your music taste, on your own or with friends. A German-language web app for 1–8 people, built for a simple first visit without an account.
 
 ## What works
 
+- Start with one personal profile; add friends or invite them later without losing the search or shortlist.
+- Opening the homepage starts fresh. Previous searches stay available in “Meine Suchen”; explicit search links still restore their selection and shortlist.
 - Global MusicBrainz artist search with partial names, keyboard selection, editable profiles and bulk list entry. Apple iTunes provides a secondary catalogue during outages.
 - Spotify standard and extended listening-history JSON import, processed entirely in the browser. Up to 30 artists ranked by listening time; no raw history upload.
 - Live Ticketmaster concerts across borders within up to 1,000 km, date/budget filters and explainable group ranking.
@@ -42,6 +44,8 @@ If the host's Windows npm shim incorrectly resolves npm from the working directo
 npm run typecheck
 npm test
 npm run test:integration
+TEST_ORIGIN=http://127.0.0.1:5174 node tests/solo-flow.mjs # isolated solo-to-group check
+TEST_ORIGIN=http://127.0.0.1:5174 node tests/saved-search-entry.mjs # explicit restore, no automatic reopening
 npm run build
 ```
 

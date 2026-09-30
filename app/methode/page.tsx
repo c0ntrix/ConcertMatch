@@ -9,10 +9,11 @@ export default function Methode() {
       <Link className="back-link" href="/">
         ← Zur Konzertsuche
       </Link>
-      <h1>Ein guter Abend für alle.</h1>
+      <h1>Deine Musik. Dein nächstes Konzert.</h1>
       <p>
-        Ihr müsst nicht dieselben Playlists haben. ConcertMatch sucht Konzerte,
-        die zu eurer ganzen Runde passen – für zwei bis acht Personen.
+        ConcertMatch findet Konzerte für deinen Musikgeschmack. Du kannst allein
+        suchen oder mit bis zu sieben weiteren Personen gemeinsame Favoriten
+        finden. Ihr müsst dafür nicht dieselben Playlists haben.
       </p>
       <h2>Erst die Musik, dann der Termin</h2>
       <p>
@@ -20,7 +21,10 @@ export default function Methode() {
         Liste mit Namen ein. Drei bis fünf Künstler sind ein guter Start. Falls
         ihr bereits einen Spotify-Datenexport habt, könnt ihr ihn zusätzlich
         importieren. Jede Person kann über den Einladungslink selbst mitmachen.
-        Ihr könnt auch mehrere Profile an einem Gerät anlegen.
+        Ihr könnt auch mehrere Profile an einem Gerät anlegen. Ein einzelnes
+        Profil reicht für eine persönliche Suche. Wenn später jemand dazukommt,
+        bleiben Suchort und Merkliste erhalten; die Empfehlungen werden für
+        euren gemeinsamen Musikgeschmack neu berechnet.
       </p>
       <h2>So entstehen Matchpunkte</h2>
       <p>
@@ -48,7 +52,8 @@ export default function Methode() {
       <p>
         Ein Beispiel: Ein Konzert mit 100 und 0 Punkten bekommt zusammen 18
         Punkte. Ein Konzert, das für beide bei 70 liegt, bekommt 70 Punkte. So
-        dominiert niemand die gemeinsame Auswahl.
+        dominiert niemand die gemeinsame Auswahl. Bei einer Person entspricht
+        der angezeigte Wert ihrer persönlichen Passung.
       </p>
       <h2>Entdeckungen sind begründete Vermutungen</h2>
       <p>
@@ -145,11 +150,14 @@ export default function Methode() {
         Gebühren und Verfügbarkeit können abweichen. Prüft deshalb den
         verlinkten Originaltermin vor einer Buchung.
       </p>
-      <h2>Gemeinsam entscheiden</h2>
+      <h2>Merken und entscheiden</h2>
       <p>
         Merkt euch interessante Konzerte. Auf der Merkliste könnt ihr pro Person
-        „Bin dabei“, „Vielleicht“ oder „Eher nicht“ wählen. Ein Kalendereintrag
-        merkt den Tag vor; Uhrzeit und Änderungen bestätigt der Ticketanbieter.
+        „Bin dabei“, „Vielleicht“ oder „Eher nicht“ wählen. Bei deiner
+        persönlichen Suche ist die Merkliste für dich; erst durch Hinzufügen
+        oder Einladen einer Person entsteht eine gemeinsame Auswahl. Ein
+        Kalendereintrag merkt den Tag vor; Uhrzeit und Änderungen bestätigt der
+        Ticketanbieter.
       </p>
       <h2>Eure Daten bleiben überschaubar</h2>
       <p>

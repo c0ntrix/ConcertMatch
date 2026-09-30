@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const id =
       requested && rows.results.some((g) => g.id === requested)
         ? requested
-        : rows.results[0]?.id;
+        : undefined;
     return {
       groups: rows.results,
       group: id ? await loadGroup(id, ctx.owner) : null,
