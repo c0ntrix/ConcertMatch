@@ -1,17 +1,20 @@
 # ConcertMatch
 
+[Open ConcertMatch](https://concertmatch.ticore.workers.dev/)
+
 Concerts your whole group can agree on. A German-language web app for 2–8 people, built for a simple first visit without an account.
 
 ## What works
 
-- Artist selection with search, editable profiles and additional music styles.
+- Global MusicBrainz artist search with partial names, keyboard selection, editable profiles and bulk list entry. Apple iTunes provides a secondary catalogue during outages.
 - Spotify standard and extended listening-history JSON import, processed entirely in the browser. Up to 30 artists ranked by listening time; no raw history upload.
-- Live Ticketmaster events in Germany, radius/date/budget filters and explainable group ranking.
+- Live Ticketmaster concerts across borders within up to 1,000 km, date/budget filters and explainable group ranking.
 - Private invitation links, persistent groups, shared shortlists and per-person votes.
+- Return to the prefilled start form to change your selection without losing the group or shortlist; start a separate group whenever needed.
 - Calendar downloads, profile export/deletion and a 90-day group lifetime.
 - Optional Spotify PKCE top-artists import, hidden until configured.
 
-The group score is **65% minimum individual score + 35% average**. A favorite scores 100; matching genres score 45–75. These are transparent heuristics, not calibrated probabilities or audio analysis.
+The group score is **65% minimum individual score + 35% average**. A favorite scores 100. The initial genre results are refined by Llama 3.3 on Cloudflare Workers AI, which assesses musical proximity for each person using verified candidate lineups. Inferred scores run from 0–92; uncertain knowledge is capped at 45. Public ListenBrainz audience counts add up to 12 sorting points. Scores are not calibrated probabilities or audio analysis.
 
 ## Local development
 
@@ -23,7 +26,7 @@ cp .env.example .env.local
 # Add your Ticketmaster Discovery API key.
 npm run db:generate # only after a schema change
 npm run build
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_wet_plazm.sql
+node --import ./scripts/wrangler-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_wet_plazm.sql
 npm run dev
 ```
 
@@ -55,10 +58,12 @@ Spotify development-mode apps currently allow five authenticated users, and the 
 
 ## Deployment and architecture
 
-React / Vinext on Cloudflare Workers, D1 SQLite, generated Drizzle migrations. The Site identity is in `.openai/hosting.json`. Use the Sites workflow to package and publish; it applies migrations before uploading the Worker. Do not run `wrangler deploy` against platform-managed infrastructure.
+React / Vinext on Cloudflare Workers, D1 SQLite, generated Drizzle migrations. Deploy into the operator’s own Cloudflare account using [the independent hosting guide](docs/independent-hosting.md). Visitors can use the app without an account.
 
 - `app/`: pages, UI and API routes.
-- `lib/matching.ts`: deterministic scoring and geographic filtering.
+- `lib/matching.ts`: group fairness, favorite overrides, geographic filtering and bounded audience weighting.
+- `lib/recommendations.ts`, `lib/ai-matching.ts`: candidate selection, validated model output, group cache, daily inference budget and genre fallback.
+- `lib/music-catalog.ts`: global artist search, prefix matching and public metadata enrichment.
 - `lib/history-import.ts`: browser-only history parser.
 - `lib/server.ts`: session capabilities, validation, prepared database access and request limits.
 - `lib/ticketmaster.ts`: provider mapping, quota protection and bounded cache.
@@ -69,14 +74,16 @@ Anonymous browser capabilities are HttpOnly/SameSite cookies; stored values are 
 
 ## Current limits
 
-Ticketmaster is not a complete gig catalogue. Germany only; up to 800 chronologically first provider events per query; 60 predefined departure cities. Distances are straight-line, not travel time. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
+Ticketmaster is not a complete gig catalogue. Up to 800 provider-relevant events per area query plus targeted searches for up to eight favorites, interleaved across profiles; predefined German departure cities. Nearby concerts in other countries are included. Distances are straight-line, not travel time. No price means an event is excluded when a budget is set. Saved event data is a snapshot: always confirm changes with the provider.
 
-Similarity is based on genres, so niche distinctions are imperfect. No AI model is trained on listening data. OAuth and history-imported favorites can be manually corrected.
+Model reasoning can be wrong, especially for niche or ambiguous names. Up to 20 favorites per person and 180 distinct candidate lineups are sent, with a 15 KB input cap that can reduce those counts; the model assesses up to 16 lineups. Actual event dates and availability come from Ticketmaster. No model is trained on listening data. OAuth and history-imported favorites can be manually corrected.
 
-Expired data is purged on subsequent service requests, not by a scheduled job. D1 request limits and caching bound provider usage; more traffic would benefit from further load testing and provider agreements.
+Expired data is purged on subsequent service requests, not by a scheduled job. D1 request limits and caching bound provider usage; the app reserves inference usage atomically within an 8,000-neuron daily ceiling (below Cloudflare's 10,000 free allowance), and falls back to genres when unavailable. The allowance is shared with other Workers AI usage in the account; more traffic would benefit from further load testing and provider agreements.
 
 See [market research](docs/market-research.md) and [handoff](docs/handoff.md).
 
-## Hosting preference update
+## Live deployment
 
-The owner chose to avoid ChatGPT-branded hosting. No public deployment has occurred. Continue with the independent Cloudflare instructions in [docs/independent-hosting.md](docs/independent-hosting.md). Cloudflare account authorization is still required; visitors will not need an account. This supersedes the earlier Sites publishing instructions above.
+ConcertMatch is published at https://concertmatch.ticore.workers.dev/ in the operator’s own Cloudflare account. Visitors can use the app without an account. The database is D1, with a Western Europe location hint. No paid plan was activated during setup.
+
+After an intentional release, run `node tests/deployment-smoke.mjs https://concertmatch.ticore.workers.dev` to check the public flow. This creates a uniquely named disposable group and deletes only that group afterward. This is a functional check, not a load test.

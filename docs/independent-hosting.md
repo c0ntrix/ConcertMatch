@@ -1,6 +1,6 @@
 # Independent Cloudflare hosting
 
-The owner requested independent hosting. Nothing was published on ChatGPT Sites. Visitors do not need a ChatGPT or Cloudflare account.
+ConcertMatch runs on Cloudflare Workers in the operator's own account. Visitors can use it without an account.
 
 The deployment requires access to the operator's own Cloudflare account. Do not use another person's account or create paid resources without authorization.
 
@@ -14,6 +14,8 @@ The deployment requires access to the operator's own Cloudflare account. Do not 
 8. Deploy with `npx wrangler deploy --config dist/server/wrangler.json`.
 9. Verify the returned public URL, group creation, event search and persisted data.
 
-The generated configuration is ignored. Repeat the preparation command after every build. The existing `.openai/hosting.json` is build-template metadata; it does not require deployment through Sites. Runtime code uses a standard Worker and a D1 binding named DB.
+The generated configuration is ignored. Repeat the preparation command after every build. Runtime code uses a standard Worker, a D1 binding named DB and an AI binding named AI. Preparation adds the AI binding; local development deliberately omits it and uses the genre fallback. Regenerate binding types with the project-local Wrangler after configuration changes.
 
-Before independent publication, update the privacy text to name the actual hosting provider and remove the unused OpenAI Sites reference. Configure Spotify callback URLs only if direct OAuth is enabled. Its client ID is not configured in the initial release.
+The privacy text names Cloudflare as the hosting provider. Configure Spotify callback URLs only if direct OAuth is enabled. Its client ID is not configured in the initial release.
+
+Workers AI recommendations have an app-side daily ceiling of 8,000 reserved neurons, with a conservative usage refund when the provider reports usage. Cloudflare currently includes 10,000 neurons daily on its free plan; other usage in the same account shares that allowance. No plan upgrade is performed by the app. Cached assessments last 24 hours and are removed with profile/group deletion.
