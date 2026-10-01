@@ -4,6 +4,7 @@ import {
   recommendationInput,
   parseRecommendations,
   mapRecommendations,
+  recommendationSystem,
 } from "../lib/recommendations";
 import { rankConcerts } from "../lib/matching";
 import { defaultPreferences } from "../lib/catalog";
@@ -83,6 +84,52 @@ test("unknown-act confidence is capped and assessments apply to real tour dates 
   const output = mapRecommendations(parsed, input, members);
   assert.deepEqual(Object.keys(output), ["one", "two"]);
   assert.deepEqual(output.one.scores, { "0": 45, "1": 45 });
+});
+
+test("extra valid model assessments keep the strongest 16 after validating every row", () => {
+  const input = recommendationInput(
+    Array.from({ length: 18 }, (_, i) => event("candidate-" + i)),
+    members,
+    p,
+  );
+  const rows = Array.from({ length: 18 }, (_, i) => row(i, [40 + i, 40 + i]));
+  const parsed = parseRecommendations({ recommendations: rows }, input);
+  assert.equal(parsed.length, 16);
+  assert.deepEqual(
+    parsed.map((r) => r.id),
+    Array.from({ length: 16 }, (_, i) => 17 - i),
+  );
+  assert.throws(() =>
+    parseRecommendations(
+      { recommendations: [...rows, row(999, [0, 0])] },
+      input,
+    ),
+  );
+  assert.throws(() =>
+    parseRecommendations({ recommendations: [...rows, row(0, [0, 0])] }, input),
+  );
+  assert.throws(() =>
+    parseRecommendations(
+      { recommendations: [...rows.slice(0, 17), row(17, [99])] },
+      input,
+    ),
+  );
+});
+
+test("system instructions and score example follow the actual number of profiles", () => {
+  for (const count of [1, 2, 8]) {
+    const system = recommendationSystem(count);
+    const match = system.match(/"scores":(\[[\d,]+\])/);
+    assert.ok(match);
+    const example = JSON.parse(match[1]);
+    assert.equal(example.length, count);
+    assert.ok(system.includes(`GENAU ${count} Zahlen`));
+  }
+  assert.ok(
+    recommendationSystem(1).includes(
+      "Favoriten innerhalb eines Profils gehören zur selben Person",
+    ),
+  );
 });
 test("AI can discover relevant acts without genre metadata, while direct favorites stay exact", () => {
   const events = [

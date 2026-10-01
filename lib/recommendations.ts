@@ -149,34 +149,66 @@ export function recommendationInput(
   };
 }
 
+export function recommendationSystem(profileCount: number) {
+  const exampleScores = Array.from(
+    { length: profileCount },
+    (_, i) => 70 - i * 5,
+  );
+  return (
+    SYSTEM.replace(
+      '"scores":[70,65]',
+      '"scores":' + JSON.stringify(exampleScores),
+    ) +
+    `\nDiese Anfrage enthält genau ${profileCount} Profil(e). Jeder Eintrag in recommendations muss in scores GENAU ${profileCount} Zahlen enthalten, eine pro Profil in profiles-Reihenfolge. Mehrere Favoriten innerhalb eines Profils gehören zur selben Person und erzeugen keine zusätzlichen Punktwerte.`
+  );
+}
+
 const row = z.object({
   id: z.number().int().nonnegative(),
   scores: z.array(z.number().int().min(0).max(100)).min(1).max(8),
   confidence: z.enum(["high", "medium", "low"]),
   reason: z.string().trim().min(1).max(1000),
 });
+export class RecommendationValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RecommendationValidationError";
+  }
+}
 export function parseRecommendations(
   raw: unknown,
   input: ReturnType<typeof recommendationInput>,
 ) {
   const result = z
-    .object({ recommendations: z.array(row).max(16) })
+    .object({ recommendations: z.array(row).max(180) })
     .parse(typeof raw === "string" ? JSON.parse(raw) : raw);
   const ids = new Set<number>();
   for (const r of result.recommendations) {
-    if (
-      !input.lineups[r.id] ||
-      ids.has(r.id) ||
-      r.scores.length !== input.memberCount
-    )
-      throw new Error("Invalid recommendation identities");
+    if (!input.lineups[r.id])
+      throw new RecommendationValidationError("Unbekannte Kandidaten-ID.");
+    if (ids.has(r.id))
+      throw new RecommendationValidationError("Doppelte Kandidaten-ID.");
+    if (r.scores.length !== input.memberCount)
+      throw new RecommendationValidationError(
+        `Falsche Anzahl an Punktwerten: erwartet ${input.memberCount}, erhalten ${r.scores.length}.`,
+      );
     ids.add(r.id);
     // Normalize harmless model formatting deviations; identity and score vectors stay strict.
     r.scores = r.scores.map((s) => Math.min(92, s));
     r.reason = r.reason.slice(0, 240);
     if (r.confidence === "low") r.scores = r.scores.map((s) => Math.min(45, s));
   }
-  return result.recommendations;
+  // Some model responses assess more than the requested 16 lineups. Validate
+  // every identity and score vector first, then keep the best 16 by the same
+  // group fairness rule used for concert ranking.
+  const fit = (scores: number[]) =>
+    0.65 * Math.min(...scores) +
+    0.35 * (scores.reduce((sum, score) => sum + score, 0) / scores.length);
+  return result.recommendations.length <= 16
+    ? result.recommendations
+    : result.recommendations
+        .sort((a, b) => fit(b.scores) - fit(a.scores))
+        .slice(0, 16);
 }
 export function mapRecommendations(
   rows: ReturnType<typeof parseRecommendations>,

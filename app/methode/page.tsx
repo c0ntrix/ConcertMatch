@@ -71,8 +71,8 @@ export default function Methode() {
       </p>
       <p>
         Modellwerte reichen bis 92 Punkte; bei unsicherem Wissen höchstens bis
-        45. Das Modell kann sich irren. Bei Ausfällen oder ausgeschöpftem
-        Tageskontingent bleiben die Genre-Ergebnisse verfügbar und sind als
+        45. Das Modell kann sich irren. Ist die erweiterte KI-Suche momentan
+        deaktiviert, bleiben die Genre-Ergebnisse verfügbar und sind als
         vorläufig gekennzeichnet. Die genaue Bewertung erscheint nach dem ersten
         Laden; die Reihenfolge kann sich dabei ändern. Eure Favoriten bleiben
         unabhängig davon berücksichtigt.
@@ -145,10 +145,14 @@ export default function Methode() {
         Entfernungen sind Luftlinien ab dem Zentrum des gewählten Startorts,
         keine Fahrstrecken und keine Entfernung von deiner Adresse. Bei
         Konzerten im selben Ort steht deshalb nur „in Hamburg“ beziehungsweise
-        euer Startort. Die Preisgrenze berücksichtigt verfügbare Euro-Preise;
-        Termine ohne Preisangabe werden bei gesetztem Budget ausgeblendet.
-        Gebühren und Verfügbarkeit können abweichen. Prüft deshalb den
-        verlinkten Originaltermin vor einer Buchung.
+        euer Startort. Preise erscheinen, wenn der Anbieter sie meldet. Gebühren
+        und Verfügbarkeit können abweichen. Prüft deshalb den verlinkten
+        Originaltermin vor einer Buchung.
+      </p>
+      <p>
+        Der Ticketmaster-Katalog enthält auch Links zu TicketWeb und anderen
+        Ticketplattformen. Ein Verkaufsstatus ist keine Bestätigung verfügbarer
+        Tickets: Ausverkaufte Termine können weiterhin im Katalog stehen.
       </p>
       <h2>Merken und entscheiden</h2>
       <p>

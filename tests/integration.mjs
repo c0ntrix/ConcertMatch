@@ -171,7 +171,7 @@ try {
       (v) => v.memberId === own.id && v.value === "yes",
     ),
   );
-  const selectedPreferences = { ...vote.data.group.preferences, radius: 500 };
+  const selectedPreferences = { ...vote.data.group.preferences, radius: 500, budget: 50 };
   const foreignSelection = await b("/api/groups/" + id, {
     action: "selection",
     profiles: [
@@ -198,6 +198,7 @@ try {
   assert.equal(reselected.status, 200, JSON.stringify(reselected.data));
   assert.equal(reselected.data.group.id, id);
   assert.equal(reselected.data.group.preferences.radius, 500);
+  assert.equal(reselected.data.group.preferences.budget, 0);
   assert.equal(
     reselected.data.group.members.find((m) => m.id === own.id).name,
     "Taylor reselected",

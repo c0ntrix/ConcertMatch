@@ -9,106 +9,17 @@ import { normalize } from "./catalog";
 import { enrichArtists } from "./music-catalog";
 import { sameArtist, genreKey, deduplicateConcerts } from "./matching";
 import { ApiError, cached, config, db, putCache } from "./server";
-type Classification = {
-  genre?: { name?: string };
-  subGenre?: { name?: string };
-};
-type Attraction = {
-  id: string;
-  name: string;
-  url?: string;
-  classifications?: Classification[];
-};
-type Event = {
-  id: string;
-  name: string;
-  url: string;
-  images?: { url: string; width: number; ratio?: string }[];
-  dates?: {
-    start?: { localDate?: string; localTime?: string; dateTBD?: boolean };
-    status?: { code: string };
-  };
-  priceRanges?: { min: number; max: number; currency: string }[];
-  classifications?: Classification[];
-  _embedded?: {
-    attractions?: Attraction[];
-    venues?: {
-      name: string;
-      city?: { name: string };
-      location?: { latitude: string; longitude: string };
-    }[];
-  };
-};
-const genres = (cs: Classification[] = []) => [
-  ...new Set(
-    cs
-      .flatMap((c) => [c.genre?.name, c.subGenre?.name])
-      .filter(
-        (x): x is string => !!x && !/undefined|other|miscellaneous/i.test(x),
-      ),
-  ),
-];
-function artist(a: Attraction): Artist {
-  return {
-    id: "tm:" + a.id,
-    name: a.name,
-    genres: genres(a.classifications),
-    url: a.url?.startsWith("https://") ? a.url : undefined,
-  };
-}
-function parseEvent(e: Event, checkedAt: string): Concert | null {
-  const v = e._embedded?.venues?.[0];
-  const start = e.dates?.start;
-  if (
-    !e.id ||
-    !e.name ||
-    !v ||
-    !start?.localDate ||
-    start.dateTBD ||
-    !e.url?.startsWith("https://")
-  )
-    return null;
-  const lat = Number(v.location?.latitude),
-    lng = Number(v.location?.longitude);
-  if (
-    !v.location?.latitude?.trim() ||
-    !v.location.longitude?.trim() ||
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lng) ||
-    Math.abs(lat) > 90 ||
-    Math.abs(lng) > 180
-  )
-    return null;
-  const images = (e.images || [])
-    .filter((i) => i.url.startsWith("https://s1.ticketm.net/"))
-    .sort((a, b) => Math.abs(a.width - 500) - Math.abs(b.width - 500));
-  const price = e.priceRanges
-    ?.filter(
-      (p) =>
-        Number.isFinite(p.min) && p.min >= 0 && /^[A-Z]{3}$/.test(p.currency),
-    )
-    .sort((a, b) => a.min - b.min)[0];
-  const artists = (e._embedded?.attractions || []).map(artist);
-  return {
-    id: e.id,
-    title: e.name,
-    artists,
-    date: start.localDate,
-    time: start.localTime,
-    venue: v.name,
-    city: v.city?.name || "",
-    lat,
-    lng,
-    url: e.url,
-    image: images[0]?.url,
-    price: price?.min,
-    currency: price?.currency,
-    genres: genres(e.classifications),
-    source: "Ticketmaster",
-    checkedAt,
-    status: e.dates?.status?.code || "onsale",
-  };
-}
+import { requestPool } from "./request-pool";
+import { withinEuroBudget } from "./concert-budget";
+import {
+  eventPages,
+  parseEvent,
+  ticketmasterArtist,
+  type Attraction,
+  type EventPage,
+  type TicketmasterEvent,
+} from "./ticketmaster-events";
+type TicketmasterRequest = typeof tm;
 export function geoHash(lat: number, lng: number, precision = 7) {
   const base = "0123456789bcdefghjkmnpqrstuvwxyz";
   let even = true,
@@ -183,16 +94,19 @@ async function tm<T>(
     signal: AbortSignal.timeout(12000),
     headers: { Accept: "application/json" },
   });
-  if (response.status === 429)
-    throw new ApiError(
-      "Ticketmaster ist gerade ausgelastet. Bitte versuche es später erneut.",
-      429,
-    );
-  if (!response.ok)
+  if (!response.ok) {
+    // Release the outgoing connection before the pool starts another request.
+    await response.body?.cancel();
+    if (response.status === 429)
+      throw new ApiError(
+        "Ticketmaster ist gerade ausgelastet. Bitte versuche es später erneut.",
+        429,
+      );
     throw new ApiError(
       "Die Konzertdaten sind gerade nicht erreichbar. Bitte später erneut versuchen.",
       502,
     );
+  }
   return (await response.json()) as T;
 }
 export async function searchArtists(query: string) {
@@ -204,11 +118,14 @@ export async function searchArtists(query: string) {
     "attractions.json",
     { keyword: query, classificationName: "music", size: "12", locale: "*" },
   );
-  const artists = (data._embedded?.attractions || []).map(artist);
+  const artists = (data._embedded?.attractions || []).map(ticketmasterArtist);
   await putCache(key, artists, 24 * 3600000);
   return artists;
 }
-async function nearbyConcerts(p: Preferences) {
+async function nearbyConcerts(
+  p: Preferences,
+  request: TicketmasterRequest = tm,
+) {
   const today = new Date().toISOString().slice(0, 10);
   const from = p.from < today ? today : p.from;
   if (p.to < today)
@@ -228,7 +145,7 @@ async function nearbyConcerts(p: Preferences) {
     sort: "relevance,desc",
     locale: "*",
   };
-  const cacheKey = "events:v2:" + JSON.stringify(query);
+  const cacheKey = "events:v3:" + JSON.stringify(query);
   const hit = await cached<{
     events: Concert[];
     notice: string;
@@ -236,113 +153,148 @@ async function nearbyConcerts(p: Preferences) {
   }>(cacheKey);
   if (hit) return hit;
   const checkedAt = new Date().toISOString();
-  const events: Concert[] = [];
-  let total = 0;
-  let pages = 1;
-  let partial = false;
-  for (let page = 0; page < Math.min(pages, 4); page++) {
-    try {
-      const data = await tm<{
-        _embedded?: { events: Event[] };
-        page?: { totalPages: number; totalElements: number };
-      }>("events.json", { ...query, page: String(page) });
-      pages = data.page?.totalPages || 1;
-      total = data.page?.totalElements || 0;
-      for (const item of data._embedded?.events || []) {
-        const c = parseEvent(item, checkedAt);
-        if (c && !events.some((e) => e.id === c.id))
-          events.push({ ...c, providerRank: page * 200 + events.length });
-      }
-    } catch (error) {
-      if (page === 0) throw error;
-      partial = true;
-      break;
-    }
-  }
+  const { events, partial } = await eventPages(
+    (page) =>
+      request<EventPage>("events.json", { ...query, page: String(page) }),
+    4,
+    checkedAt,
+  );
   const notice = partial
     ? "Ein Teil der Konzertdaten konnte nicht geladen werden. Die angezeigte Auswahl ist unvollständig."
-    : total > 800
-      ? "Auswahl aus den 800 von Ticketmaster als relevant eingestuften Terminen in eurem Umkreis, ergänzt um gezielte Suchen nach euren Favoriten und Musikrichtungen. Nicht alle Konzerte sind enthalten."
-      : "Aus dem Ticketmaster-Katalog. Nicht alle Veranstalter und Clubs sind enthalten.";
+    : "";
   const result = { events, notice, checkedAt };
   await putCache(cacheKey, result, partial ? 60000 : 15 * 60000);
   return result;
 }
 // Partition discovery by the group's main music families, so a large radius
 // does not let the global 800-event page hide all relevant touring artists.
-async function focusedConcerts(p: Preferences, members: Member[]) {
+async function focusedConcerts(
+  p: Preferences,
+  members: Member[],
+  request: TicketmasterRequest = tm,
+) {
   let catalogue = await cached<ProviderGenre[]>("tm:music-genres:v1");
   if (!catalogue) {
     catalogue = musicGenres(
-      await tm<ClassificationCatalogue>("classifications.json", {
+      await request<ClassificationCatalogue>("classifications.json", {
         locale: "en-us",
       }),
     );
     if (catalogue.length)
       await putCache("tm:music-genres:v1", catalogue, 7 * 86400000);
   }
-  const events: Concert[] = [];
-  let partial = false;
   const today = new Date().toISOString().slice(0, 10);
-  for (const genre of discoveryGenres(members, catalogue)) {
-    const query = {
-      geoPoint: geoHash(p.lat, p.lng),
-      radius: String(p.radius),
-      unit: "km",
-      genreId: genre.id,
-      startDateTime: (p.from < today ? today : p.from) + "T00:00:00Z",
-      endDateTime: p.to + "T23:59:59Z",
-      size: "200",
-      sort: "relevance,desc",
-      locale: "*",
-    };
-    const key = "focused:v1:" + JSON.stringify(query);
-    let hits = await cached<{ events: Concert[]; partial: boolean }>(key);
-    if (!hits) {
-      const found: Concert[] = [];
-      let pages = 1,
-        incomplete = false;
-      const checkedAt = new Date().toISOString();
-      for (let page = 0; page < Math.min(pages, 3); page++) {
+  const discoveries = await Promise.allSettled(
+    discoveryGenres(members, catalogue).map(async (genre) => {
+      const query = {
+        geoPoint: geoHash(p.lat, p.lng),
+        radius: String(p.radius),
+        unit: "km",
+        genreId: genre.id,
+        startDateTime: (p.from < today ? today : p.from) + "T00:00:00Z",
+        endDateTime: p.to + "T23:59:59Z",
+        size: "200",
+        sort: "relevance,desc",
+        locale: "*",
+      };
+      const key = "focused:v2:" + JSON.stringify(query);
+      let hits = await cached<{ events: Concert[]; partial: boolean }>(key);
+      if (!hits) {
+        const checkedAt = new Date().toISOString();
         try {
-          const data = await tm<{
-            _embedded?: { events: Event[] };
-            page?: { totalPages: number };
-          }>("events.json", { ...query, page: String(page) });
-          pages = data.page?.totalPages || 1;
-          for (const raw of data._embedded?.events || []) {
-            const event = parseEvent(raw, checkedAt);
-            if (event && !found.some((e) => e.id === event.id))
-              found.push({ ...event, providerRank: page * 200 + found.length });
-          }
+          const found = await eventPages(
+            (page) =>
+              request<EventPage>("events.json", {
+                ...query,
+                page: String(page),
+              }),
+            3,
+            checkedAt,
+          );
+          hits = { events: found.events, partial: found.partial };
         } catch {
-          incomplete = true;
-          break;
+          hits = { events: [], partial: true };
         }
+        await putCache(key, hits, hits.partial ? 60000 : 15 * 60000);
       }
-      hits = { events: found, partial: incomplete };
-      await putCache(key, hits, incomplete ? 60000 : 15 * 60000);
-    }
-    partial ||= hits.partial;
-    for (const event of hits.events)
-      if (!events.some((e) => e.id === event.id)) events.push(event);
-  }
-  return { events, partial };
+      return hits;
+    }),
+  );
+  return {
+    events: [
+      ...new Map(
+        discoveries
+          .flatMap((d) => (d.status === "fulfilled" ? d.value.events : []))
+          .map((e) => [e.id, e]),
+      ).values(),
+    ],
+    partial: discoveries.some(
+      (d) => d.status === "rejected" || d.value.partial,
+    ),
+  };
 }
 
 export async function findConcert(id: string) {
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id))
     throw new ApiError("Ungültige Konzert-ID.");
-  const key = "event:" + id;
+  const key = "event:v2:" + id;
   const hit = await cached<Concert>(key);
   if (hit) return hit;
-  const raw = await tm<Event>("events/" + encodeURIComponent(id) + ".json", {
-    locale: "*",
-  });
+  const raw = await tm<TicketmasterEvent>(
+    "events/" + encodeURIComponent(id) + ".json",
+    {
+      locale: "*",
+    },
+  );
   const c = parseEvent(raw, new Date().toISOString());
   if (!c) throw new ApiError("Dieser Termin ist nicht mehr verfügbar.", 404);
   await putCache(key, c);
   return c;
+}
+
+async function targetedConcerts(
+  p: Preferences,
+  favorites: Artist[],
+  checkedAt: string,
+  request: TicketmasterRequest,
+) {
+  const today = checkedAt.slice(0, 10);
+  const discoveries = await Promise.all(
+    favorites.slice(0, 8).map(async (favorite) => {
+      const query = {
+        keyword: favorite.name,
+        geoPoint: geoHash(p.lat, p.lng),
+        radius: String(p.radius),
+        unit: "km",
+        classificationName: "music",
+        startDateTime: (p.from < today ? today : p.from) + "T00:00:00Z",
+        endDateTime: p.to + "T23:59:59Z",
+        size: "100",
+        locale: "*",
+      };
+      const key = "targeted:v3:" + JSON.stringify(query);
+      try {
+        let targeted = await cached<Concert[]>(key);
+        if (!targeted) {
+          const data = await request<EventPage>("events.json", query);
+          targeted = (data._embedded?.events || [])
+            .map((e) => parseEvent(e, checkedAt))
+            .filter(
+              (e): e is Concert =>
+                !!e && e.artists.some((a) => sameArtist(a, favorite)),
+            );
+          await putCache(key, targeted);
+        }
+        return { events: targeted, partial: false };
+      } catch {
+        return { events: [], partial: true };
+      }
+    }),
+  );
+  return {
+    events: discoveries.flatMap((d) => d.events),
+    partial: discoveries.some((d) => d.partial),
+  };
 }
 
 export async function searchConcerts(
@@ -350,9 +302,9 @@ export async function searchConcerts(
   members: Member[] = [],
   enrich = true,
 ) {
-  const base = await nearbyConcerts(p);
-  if (p.to < new Date().toISOString().slice(0, 10))
-    return { ...base, artistMetadata: [] };
+  const checkedAt = new Date().toISOString();
+  if (p.to < checkedAt.slice(0, 10))
+    return { ...(await nearbyConcerts(p)), artistMetadata: [] };
   // Interleave profiles so a large import by one person cannot consume every slot.
   const favorites: Artist[] = [];
   for (let i = 0; i < 50; i++)
@@ -360,51 +312,46 @@ export async function searchConcerts(
       const a = member.artists[i];
       if (a && !favorites.some((b) => sameArtist(a, b))) favorites.push(a);
     }
-  const events = [...base.events];
-  let partial = false;
-  for (const favorite of favorites.slice(0, 8)) {
-    const query = {
-      keyword: favorite.name,
-      geoPoint: geoHash(p.lat, p.lng),
-      radius: String(p.radius),
-      unit: "km",
-      classificationName: "music",
-      startDateTime:
-        (p.from < new Date().toISOString().slice(0, 10)
-          ? new Date().toISOString().slice(0, 10)
-          : p.from) + "T00:00:00Z",
-      endDateTime: p.to + "T23:59:59Z",
-      size: "100",
-      locale: "*",
-    };
-    const key = "targeted:v2:" + JSON.stringify(query);
-    try {
-      let targeted = await cached<Concert[]>(key);
-      if (!targeted) {
-        const data = await tm<{ _embedded?: { events: Event[] } }>(
-          "events.json",
-          query,
-        );
-        targeted = (data._embedded?.events || [])
-          .map((e) => parseEvent(e, base.checkedAt))
-          .filter(
-            (e): e is Concert =>
-              !!e && e.artists.some((a) => sameArtist(a, favorite)),
-          );
-        await putCache(key, targeted);
+  // Overlap independent network waits, with one pool for this entire search.
+  // Each call still reserves the shared D1 rate-limit slot and daily quota.
+  const pool = requestPool(3);
+  const request: TicketmasterRequest = <T>(
+    path: string,
+    params: Record<string, string> = {},
+  ) => pool(() => tm<T>(path, params));
+  const [baseResult, targetedResult, profileResult] = await Promise.allSettled([
+    nearbyConcerts(p, request),
+    targetedConcerts(p, favorites, checkedAt, request),
+    (async () => {
+      const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
+      const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
+      const profiles = members.map((m) => ({
+        ...m,
+        artists: m.artists.map((a) => profileById.get(a.id) || a),
+      }));
+      let focused: { events: Concert[]; partial: boolean };
+      try {
+        focused = await focusedConcerts(p, profiles, request);
+      } catch {
+        focused = { events: [], partial: true };
       }
-      for (const event of targeted)
-        if (!events.some((e) => e.id === event.id)) events.push(event);
-    } catch {
-      partial = true;
-    }
-  }
-  const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
-  const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
-  const profiles = members.map((m) => ({
-    ...m,
-    artists: m.artists.map((a) => profileById.get(a.id) || a),
-  }));
+      return { profileMetadata, profiles, focused };
+    })(),
+  ]);
+  // Settle every branch before returning or throwing, keeping all I/O attached
+  // to this Worker request's lifetime even when the required base query fails.
+  if (baseResult.status === "rejected") throw baseResult.reason;
+  if (profileResult.status === "rejected") throw profileResult.reason;
+  const base = baseResult.value;
+  const targeted =
+    targetedResult.status === "fulfilled"
+      ? targetedResult.value
+      : { events: [], partial: true };
+  const { profileMetadata, profiles, focused } = profileResult.value;
+  const partial = targeted.partial || focused.partial;
+  const events = new Map<string, Concert>();
+  for (const event of [...base.events, ...targeted.events, ...focused.events])
+    if (!events.has(event.id)) events.set(event.id, event);
   const families = profiles.map(
     (m) =>
       new Set(
@@ -413,16 +360,12 @@ export async function searchConcerts(
         ),
       ),
   );
-  try {
-    const focused = await focusedConcerts(p, profiles);
-    partial ||= focused.partial;
-    for (const event of focused.events)
-      if (!events.some((e) => e.id === event.id)) events.push(event);
-  } catch {
-    partial = true;
-  }
   const favoriteNames = new Set(favorites.map((a) => normalize(a.name)));
-  const bookable = deduplicateConcerts(events);
+  // Apply the budget before metadata enrichment or downstream AI assessment.
+  // Otherwise a price-limited search waits for work on invisible concerts.
+  const bookable = deduplicateConcerts(
+    [...events.values()].filter((event) => withinEuroBudget(event, p.budget)),
+  );
   const candidates = bookable
     .map((event) => {
       const genres = [
@@ -454,10 +397,13 @@ export async function searchConcerts(
       artists: e.artists.map((a) => byId.get(a.id) || a),
     })),
     artistMetadata: profileMetadata,
-    notice:
-      base.notice +
-      (partial
-        ? " Einzelne gezielte Künstler- oder Genre-Abfragen konnten nicht geladen werden."
-        : ""),
+    notice: [
+      base.notice,
+      partial
+        ? "Einzelne gezielte Künstler- oder Genre-Abfragen konnten nicht geladen werden."
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
   };
 }

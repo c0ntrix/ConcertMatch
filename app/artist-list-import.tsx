@@ -13,7 +13,7 @@ export default function ArtistListImport({
   const [message, setMessage] = useState("");
   return (
     <details className="artist-help">
-      <summary>Lieblingskünstler nicht im Kopf?</summary>
+      <summary>Künstlerliste einfügen</summary>
       <p>
         In der Spotify-App: Profilbild → „Hörstatistiken“ / „Listening stats“.
         Dort siehst du deine Top-Künstler der letzten vier Wochen, sofern die

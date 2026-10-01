@@ -1,0 +1,37 @@
+.ai-debug {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  min-width: 0;
+}
+.ai-debug summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.ai-debug dl {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+}
+.ai-debug dt,
+.ai-debug h3 {
+  font-weight: 600;
+  margin-top: 10px;
+}
+.ai-debug dd,
+.ai-debug p {
+  overflow-wrap: anywhere;
+}
+.ai-debug pre {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 4px;
+  background: var(--muted, #f1f3ed);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}

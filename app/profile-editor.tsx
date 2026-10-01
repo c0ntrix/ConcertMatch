@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { ARTISTS, STARTER_ARTISTS, GENRES, normalize } from "@/lib/catalog";
 import type { Artist } from "@/lib/types";
 import {
@@ -34,6 +34,9 @@ export default function ProfileEditor({
   spotify?: boolean;
 }) {
   const id = useId();
+  const nameId = id + "-name";
+  const artistId = id + "-artists";
+  const artistHintId = id + "-artist-hint";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -87,7 +90,7 @@ export default function ProfileEditor({
               error: e.message,
             });
         });
-    }, 450);
+    }, 250);
     return () => {
       clearTimeout(t);
       ac.abort();
@@ -105,7 +108,7 @@ export default function ProfileEditor({
         !value.artists.some((b) => sameArtist(a, b)),
     )
     .slice(0, query ? 20 : 6);
-  function add(a: Artist) {
+  function add(a: Artist, keepSearching = true) {
     if (
       value.artists.length >= 50 ||
       value.artists.some((b) => sameArtist(a, b))
@@ -113,21 +116,27 @@ export default function ProfileEditor({
       return;
     onChange({ ...value, artists: [...value.artists, a] });
     setQuery("");
-    setOpen(true);
-    setAdded(a.name + " hinzugefügt. Du kannst direkt weitersuchen.");
-    input.current?.focus();
+    setOpen(keepSearching);
+    setAdded(a.name + " hinzugefügt.");
+    if (keepSearching) input.current?.focus();
   }
   return (
     <div className="profile-editor">
       <div className="profile-name">
-        <span className={"person-dot person-" + (index % 4)}>{index + 1}</span>
-        <input
-          aria-label={"Name von Person " + (index + 1)}
-          value={value.name}
-          maxLength={40}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          placeholder={"Person " + (index + 1)}
-        />
+        <span className={"person-dot person-" + (index % 4)} aria-hidden="true">
+          {index + 1}
+        </span>
+        <div className="profile-name-field">
+          <label htmlFor={nameId}>Name</label>
+          <input
+            id={nameId}
+            aria-label={"Name von Person " + (index + 1)}
+            value={value.name}
+            maxLength={40}
+            onChange={(e) => onChange({ ...value, name: e.target.value })}
+            placeholder={"Person " + (index + 1)}
+          />
+        </div>
         {onRemove && (
           <button
             type="button"
@@ -135,29 +144,16 @@ export default function ProfileEditor({
             aria-label={value.name + " entfernen"}
             onClick={onRemove}
           >
-            <X size={17} />
+            <X size={17} aria-hidden="true" />
           </button>
         )}
       </div>
       <div className="artist-field">
-        <div className="artist-chips">
-          {value.artists.map((a) => (
-            <span key={a.id} className="artist-chip">
-              {a.name}
-              <button
-                type="button"
-                aria-label={a.name + " entfernen"}
-                onClick={() =>
-                  onChange({
-                    ...value,
-                    artists: value.artists.filter((b) => b.id !== a.id),
-                  })
-                }
-              >
-                <X size={13} />
-              </button>
-            </span>
-          ))}
+        <div className="artist-field-heading">
+          <label htmlFor={artistId}>Lieblingskünstler</label>
+          <span className="field-hint" id={artistHintId}>
+            3–5 sind ein guter Anfang
+          </span>
         </div>
         <Combobox
           multiple
@@ -186,9 +182,11 @@ export default function ProfileEditor({
         >
           <ComboboxInput
             ref={input}
-            id={id}
+            id={artistId}
+            className="artist-search-input"
             maxLength={100}
             disabled={value.artists.length >= 50}
+            aria-describedby={artistHintId}
             aria-label={"Lieblingskünstler für " + value.name}
             placeholder={
               value.artists.length
@@ -196,7 +194,13 @@ export default function ProfileEditor({
                 : "Künstler oder Band suchen …"
             }
             showTrigger={false}
-          />
+          >
+            <Search
+              size={18}
+              className="artist-search-icon"
+              aria-hidden="true"
+            />
+          </ComboboxInput>
           <ComboboxContent>
             {loading && (
               <p className="artist-search-status" role="status">
@@ -247,6 +251,31 @@ export default function ProfileEditor({
             )}
           </ComboboxContent>
         </Combobox>
+        {value.artists.length > 0 && (
+          <div
+            className="artist-chips"
+            role="list"
+            aria-label="Ausgewählte Lieblingskünstler"
+          >
+            {value.artists.map((a) => (
+              <span key={a.id} className="artist-chip" role="listitem">
+                <span className="artist-chip-text">{a.name}</span>
+                <button
+                  type="button"
+                  aria-label={a.name + " entfernen"}
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      artists: value.artists.filter((b) => b.id !== a.id),
+                    })
+                  }
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <span className="sr-only" role="status">
           {added}
         </span>
@@ -273,7 +302,7 @@ export default function ProfileEditor({
                 })
               }
             >
-              <Plus size={14} /> „{query.trim()}“ übernehmen
+              <Plus size={14} aria-hidden="true" /> „{query.trim()}“ übernehmen
             </button>
           )}
         {!value.artists.length && !query && (
@@ -283,7 +312,7 @@ export default function ProfileEditor({
               index % 2 === 0 ? 0 : 3,
               index % 2 === 0 ? 3 : 6,
             ).map((a) => (
-              <button type="button" key={a.id} onClick={() => add(a)}>
+              <button type="button" key={a.id} onClick={() => add(a, false)}>
                 {a.name}
               </button>
             ))}
@@ -316,47 +345,55 @@ export default function ProfileEditor({
             </div>
           </details>
         )}
-        <ArtistListImport
-          onImport={(artists) =>
-            onChange({
-              ...value,
-              artists: [
-                ...value.artists,
-                ...artists.filter(
-                  (a) => !value.artists.some((b) => sameArtist(a, b)),
-                ),
-              ].slice(0, 50),
-            })
-          }
-        />
-        <HistoryImport
-          onImport={(artists) =>
-            onChange({
-              ...value,
-              artists: [
-                ...value.artists,
-                ...artists.filter(
-                  (a) => !value.artists.some((b) => sameArtist(a, b)),
-                ),
-              ].slice(0, 50),
-            })
-          }
-        />
-        {spotify && (
-          <a
-            className="text-link spotify-link"
-            href="/api/spotify/start"
-            onClick={() => {
-              sessionStorage.setItem("cm_spotify_draft", JSON.stringify(value));
-              sessionStorage.setItem(
-                "cm_spotify_group",
-                new URL(location.href).searchParams.get("group") || "",
-              );
-            }}
-          >
-            Favoriten aus Spotify übernehmen
-          </a>
-        )}
+        <details className="profile-imports">
+          <summary>Liste oder Spotify-Verlauf importieren</summary>
+          <div className="profile-import-options">
+            <ArtistListImport
+              onImport={(artists) =>
+                onChange({
+                  ...value,
+                  artists: [
+                    ...value.artists,
+                    ...artists.filter(
+                      (a) => !value.artists.some((b) => sameArtist(a, b)),
+                    ),
+                  ].slice(0, 50),
+                })
+              }
+            />
+            <HistoryImport
+              onImport={(artists) =>
+                onChange({
+                  ...value,
+                  artists: [
+                    ...value.artists,
+                    ...artists.filter(
+                      (a) => !value.artists.some((b) => sameArtist(a, b)),
+                    ),
+                  ].slice(0, 50),
+                })
+              }
+            />
+            {spotify && (
+              <a
+                className="text-link spotify-link"
+                href="/api/spotify/start"
+                onClick={() => {
+                  sessionStorage.setItem(
+                    "cm_spotify_draft",
+                    JSON.stringify(value),
+                  );
+                  sessionStorage.setItem(
+                    "cm_spotify_group",
+                    new URL(location.href).searchParams.get("group") || "",
+                  );
+                }}
+              >
+                Favoriten aus Spotify übernehmen
+              </a>
+            )}
+          </div>
+        </details>
       </div>
     </div>
   );

@@ -204,7 +204,8 @@ export async function loadGroup(id: string, owner: string): Promise<Group> {
     id: g.id,
     name: g.name,
     owner: g.owner === owner,
-    preferences: JSON.parse(g.preferences),
+    // Budget filtering is paused while provider price coverage is incomplete.
+    preferences: { ...JSON.parse(g.preferences), budget: 0 },
     expiresAt: g.expires_at,
     members: m.results.map(
       (x) =>
@@ -251,7 +252,12 @@ export const preferencesSchema = z
     radius: z.number().int().min(10).max(1000),
     from: isoDate,
     to: isoDate,
-    budget: z.number().int().min(0).max(500),
+    budget: z
+      .number()
+      .int()
+      .min(0)
+      .max(500)
+      .transform(() => 0),
     discovery: z.boolean(),
   })
   .refine(

@@ -1,4 +1,5 @@
 export const INFERENCE_RESERVATION = 1500;
+export const INFERENCE_DAILY_LIMIT = 8000;
 export type InferenceUsage = {
   neurons?: number;
   prompt_tokens?: number;

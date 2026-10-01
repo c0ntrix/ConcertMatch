@@ -1,4 +1,5 @@
 import type { Artist, Preferences } from "./types";
+import { addCalendarMonths, localDate } from "./date";
 export const GENRES = [
   "Indie",
   "Rock",
@@ -207,15 +208,14 @@ const places: [string, number, number][] = [
 export const CITIES = places.map(([name, lat, lng]) => ({ name, lat, lng }));
 export function defaultPreferences(): Preferences {
   const now = new Date();
-  const later = new Date(now);
-  later.setMonth(later.getMonth() + 6);
+  const later = addCalendarMonths(now, 6);
   return {
     city: "Hamburg",
     lat: 53.5511,
     lng: 9.9937,
     radius: 100,
-    from: now.toISOString().slice(0, 10),
-    to: later.toISOString().slice(0, 10),
+    from: localDate(now),
+    to: localDate(later),
     budget: 0,
     discovery: true,
   };

@@ -76,3 +76,35 @@ export type Recommendations = Record<
     confidence: "high" | "medium" | "low";
   }
 >;
+export type RecommendationDebug = {
+  status:
+    | "live"
+    | "cache"
+    | "no-candidates"
+    | "missing-binding"
+    | "in-progress"
+    | "budget-exhausted"
+    | "invalid-output"
+    | "provider-error"
+    | "storage-error"
+    | "request-error";
+  model?: string;
+  durationMs?: number;
+  candidateCount?: number;
+  assessedCount?: number;
+  input?: string;
+  output?: string;
+  outputSource?: "raw" | "validated-cache";
+  usage?: {
+    neurons?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
+  budget?: {
+    used: number;
+    limit: number;
+    reservation: number;
+    resetsAt: string;
+  };
+  error?: string;
+};
