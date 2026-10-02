@@ -951,6 +951,19 @@ img {
   font-size: 12px;
   margin: 0 0 7px;
 }
+.concert-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.concert-heading h2 {
+  min-width: 0;
+}
+.concert-listen {
+  flex-shrink: 0;
+  font-size: 12px;
+}
 .concert-body h2 {
   font-size: 21px;
   font-weight: 600;
