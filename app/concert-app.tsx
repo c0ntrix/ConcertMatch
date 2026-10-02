@@ -695,6 +695,7 @@ export default function ConcertApp() {
       </header>
       <main
         id="main"
+        tabIndex={-1}
         className={
           "main-content " +
           (group && !joining && !editingSelection ? "has-results" : "")
