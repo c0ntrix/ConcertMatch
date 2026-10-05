@@ -132,8 +132,9 @@ export default function Methode() {
         Künstlerdaten: <a href="https://musicbrainz.org/">MusicBrainz</a>, bei
         Ausfällen ergänzend <a href="https://music.apple.com/">Apple iTunes</a>.
         Hörerzahlen: <a href="https://listenbrainz.org/">ListenBrainz</a>.
-        Konzerttermine: Ticketmaster. Die Metadaten werden zwischengespeichert
-        und können lückenhaft oder veraltet sein.
+        Konzerttermine: Ticketmaster und, nach Freischaltung, Eventfrog. Die
+        Metadaten werden zwischengespeichert und können lückenhaft oder veraltet
+        sein.
       </p>
       <h2>Welche Konzerte sind enthalten?</h2>
       <p>
@@ -142,14 +143,17 @@ export default function Methode() {
         derzeit in Deutschland. Clubshows und andere Ticketanbieter sind nicht
         vollständig abgedeckt. Bei sehr vielen Terminen berücksichtigen wir bis
         zu 800 nach Ticketmaster-Relevanz sortierte Termine im gewählten
-        Zeitraum. Zusätzlich suchen wir gezielt nach bis zu acht Favoriten,
-        abwechselnd aus euren Profilen. Zusätzlich laden wir bis zu 600 Termine
-        für jede der drei am besten vertretenen Musikrichtungen eurer Gruppe.
-        Dadurch verdrängen große allgemeine Kategorien nicht alle passenden
-        Acts. Tourtermine erscheinen gemeinsam in einem Treffer: Über „Termine &
-        Orte“ wählt ihr den konkreten Termin für Tickets und Merkliste. Die
-        Auswahl bleibt begrenzt; fehlende Treffer bedeuten nicht, dass es keine
-        Tour gibt.
+        Zeitraum. Bei mehr Terminen durchsuchen wir zusätzlich bis zu vier
+        getrennte Zeitabschnitte mit jeweils bis zu 800 Terminen. So können
+        weitere Konzerte erscheinen; eine vollständige Abdeckung ist weiterhin
+        nicht garantiert. Zusätzlich suchen wir gezielt nach bis zu acht
+        Favoriten, abwechselnd aus euren Profilen. Zusätzlich laden wir bis zu
+        600 Termine für jede der drei am besten vertretenen Musikrichtungen
+        eurer Gruppe. Dadurch verdrängen große allgemeine Kategorien nicht alle
+        passenden Acts. Tourtermine erscheinen gemeinsam in einem Treffer: Über
+        „Termine & Orte“ wählt ihr den konkreten Termin für Tickets und
+        Merkliste. Die Auswahl bleibt begrenzt; fehlende Treffer bedeuten nicht,
+        dass es keine Tour gibt.
       </p>
       <p>
         Entfernungen sind Luftlinien ab dem Zentrum des gewählten Startorts,

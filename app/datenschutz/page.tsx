@@ -122,7 +122,9 @@ export default function Datenschutz() {
       </p>
       <h2>Konzertdaten und externe Links</h2>
       <p>
-        Unser Server ruft Konzertdaten von Ticketmaster ab. Dabei werden
+        Unser Server ruft Konzertdaten von Ticketmaster ab. Wenn Eventfrog als
+        weitere Quelle freigeschaltet wird, übermitteln wir dorthin Suchort,
+        Umkreis und Zeitraum, aber keine Musikprofile. Bei Ticketmaster werden
         Suchort, Umkreis, Zeitraum und gegebenenfalls ein eingegebener
         Künstlername übermittelt, aber keine Gruppennamen, Teilnehmerlisten oder
         vollständigen Musikprofile. Konzertbilder werden über unseren Server

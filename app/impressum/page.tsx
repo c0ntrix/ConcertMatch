@@ -40,10 +40,11 @@ export default function Impressum() {
         >
           Ticketmaster
         </a>
-        . Künstlerdaten und Musikstil-Zuordnungen: MusicBrainz / MetaBrainz,
-        ergänzend Apple iTunes, Ticketmaster und eine eigene Startauswahl.
-        Öffentliche Hörerzahlen: ListenBrainz. Optionale KI-Empfehlungen:
-        Cloudflare Workers AI. Spotify-Importe werden als solche gekennzeichnet.
+        sowie, nach Freischaltung, Eventfrog. Künstlerdaten und
+        Musikstil-Zuordnungen: MusicBrainz / MetaBrainz, ergänzend Apple iTunes,
+        Ticketmaster und eine eigene Startauswahl. Öffentliche Hörerzahlen:
+        ListenBrainz. Optionale KI-Empfehlungen: Cloudflare Workers AI.
+        Spotify-Importe werden als solche gekennzeichnet.
       </p>
       <nav className="legal-links" aria-label="Weitere Informationen">
         <a href="/datenschutz">Datenschutz</a>

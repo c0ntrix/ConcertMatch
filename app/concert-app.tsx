@@ -1253,9 +1253,12 @@ export default function ConcertApp() {
               </p>
               {checkedAt && (
                 <p>
-                  Konzertdaten von Ticketmaster, Stand{" "}
-                  {new Date(checkedAt).toLocaleString("de-DE")}. Preise und
-                  Verfügbarkeit bitte beim Anbieter prüfen.
+                  Konzertdaten von{" "}
+                  {Array.from(new Set(events.map((e) => e.source))).join(
+                    ", ",
+                  ) || "den Konzertanbietern"}
+                  , Stand {new Date(checkedAt).toLocaleString("de-DE")}. Preise
+                  und Verfügbarkeit bitte beim Anbieter prüfen.
                 </p>
               )}
               {tab !== "saved" && (

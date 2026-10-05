@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       group: id ? await loadGroup(id, ctx.owner) : null,
       providers: {
         ticketmaster: !!config("TICKETMASTER_API_KEY"),
+        eventfrog: !!config("EVENTFROG_API_KEY"),
         spotify: !!config("SPOTIFY_CLIENT_ID"),
       },
     };

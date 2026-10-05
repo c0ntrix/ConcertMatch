@@ -231,7 +231,32 @@ export function deduplicateConcerts(concerts: Concert[]) {
     )
       seen.set(key, c);
   }
-  return [...seen.values()];
+  // Providers may omit the lineup. Only merge across sources when the actual
+  // event title and location agree; different timed performances stay separate.
+  const unique: Concert[] = [];
+  const offers = new Map<string, number[]>();
+  for (const c of seen.values()) {
+    const key = JSON.stringify([
+      normalize(c.title),
+      c.date,
+      c.time || "",
+      normalize(c.venue),
+      normalize(c.city),
+    ]);
+    const bucket = offers.get(key) || [];
+    const index = bucket.find(
+      (i) =>
+        unique[i].source !== c.source &&
+        (!unique[i].artists.length || !c.artists.length),
+    );
+    if (index === undefined) {
+      bucket.push(unique.length);
+      unique.push(c);
+      offers.set(key, bucket);
+    } else if (c.artists.length > unique[index].artists.length)
+      unique[index] = c;
+  }
+  return unique;
 }
 export function matchConcert(
   concert: Concert,

@@ -11,6 +11,8 @@ import { sameArtist, genreKey, deduplicateConcerts } from "./matching";
 import { ApiError, cached, config, db, putCache } from "./server";
 import { requestPool } from "./request-pool";
 import { withinEuroBudget } from "./concert-budget";
+import { expandedEventPages } from "./concert-coverage";
+import { findEventfrogConcert, searchEventfrog } from "./eventfrog";
 import {
   eventPages,
   parseEvent,
@@ -145,7 +147,7 @@ async function nearbyConcerts(
     sort: "relevance,desc",
     locale: "*",
   };
-  const cacheKey = "events:v3:" + JSON.stringify(query);
+  const cacheKey = "events:v4:" + JSON.stringify(query);
   const hit = await cached<{
     events: Concert[];
     notice: string;
@@ -153,15 +155,23 @@ async function nearbyConcerts(
   }>(cacheKey);
   if (hit) return hit;
   const checkedAt = new Date().toISOString();
-  const { events, partial } = await eventPages(
-    (page) =>
-      request<EventPage>("events.json", { ...query, page: String(page) }),
-    4,
+  const { events, partial, capped } = await expandedEventPages(
+    (start, end, page) =>
+      request<EventPage>("events.json", {
+        ...query,
+        startDateTime: start + "T00:00:00Z",
+        endDateTime: end + "T23:59:59Z",
+        page: String(page),
+      }),
+    from,
+    p.to,
     checkedAt,
   );
   const notice = partial
     ? "Ein Teil der Konzertdaten konnte nicht geladen werden. Die angezeigte Auswahl ist unvollständig."
-    : "";
+    : capped
+      ? "Im großen Suchgebiet sind mehr Termine verfügbar, als auf einmal geladen werden können. Ein kürzerer Zeitraum kann weitere Treffer zeigen."
+      : "";
   const result = { events, notice, checkedAt };
   await putCache(cacheKey, result, partial ? 60000 : 15 * 60000);
   return result;
@@ -235,6 +245,7 @@ async function focusedConcerts(
 }
 
 export async function findConcert(id: string) {
+  if (id.startsWith("eventfrog:")) return findEventfrogConcert(id);
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id))
     throw new ApiError("Ungültige Konzert-ID.");
   const key = "event:v2:" + id;
@@ -319,30 +330,66 @@ export async function searchConcerts(
     path: string,
     params: Record<string, string> = {},
   ) => pool(() => tm<T>(path, params));
-  const [baseResult, targetedResult, profileResult] = await Promise.allSettled([
-    nearbyConcerts(p, request),
-    targetedConcerts(p, favorites, checkedAt, request),
-    (async () => {
-      const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
-      const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
-      const profiles = members.map((m) => ({
-        ...m,
-        artists: m.artists.map((a) => profileById.get(a.id) || a),
-      }));
-      let focused: { events: Concert[]; partial: boolean };
-      try {
-        focused = await focusedConcerts(p, profiles, request);
-      } catch {
-        focused = { events: [], partial: true };
-      }
-      return { profileMetadata, profiles, focused };
-    })(),
-  ]);
+  const [baseResult, targetedResult, profileResult, eventfrogResult] =
+    await Promise.allSettled([
+      config("TICKETMASTER_API_KEY")
+        ? nearbyConcerts(p, request)
+        : Promise.resolve({ events: [] as Concert[], notice: "", checkedAt }),
+      config("TICKETMASTER_API_KEY")
+        ? targetedConcerts(p, favorites, checkedAt, request)
+        : Promise.resolve({ events: [] as Concert[], partial: false }),
+      (async () => {
+        const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
+        const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
+        const profiles = members.map((m) => ({
+          ...m,
+          artists: m.artists.map((a) => profileById.get(a.id) || a),
+        }));
+        let focused: { events: Concert[]; partial: boolean };
+        try {
+          focused = config("TICKETMASTER_API_KEY")
+            ? await focusedConcerts(p, profiles, request)
+            : { events: [], partial: false };
+        } catch {
+          focused = { events: [], partial: true };
+        }
+        return { profileMetadata, profiles, focused };
+      })(),
+      searchEventfrog(p),
+    ]);
   // Settle every branch before returning or throwing, keeping all I/O attached
   // to this Worker request's lifetime even when the required base query fails.
-  if (baseResult.status === "rejected") throw baseResult.reason;
   if (profileResult.status === "rejected") throw profileResult.reason;
-  const base = baseResult.value;
+  if (
+    baseResult.status === "rejected" &&
+    (eventfrogResult.status === "rejected" ||
+      !eventfrogResult.value.events.length) &&
+    (targetedResult.status === "rejected" ||
+      !targetedResult.value.events.length) &&
+    !profileResult.value.focused.events.length
+  )
+    throw baseResult.reason;
+  if (!config("TICKETMASTER_API_KEY") && eventfrogResult.status === "rejected")
+    throw eventfrogResult.reason;
+  if (!config("TICKETMASTER_API_KEY") && !config("EVENTFROG_API_KEY"))
+    throw new ApiError("Die Konzertsuche wird gerade eingerichtet.", 503);
+  const base =
+    baseResult.status === "fulfilled"
+      ? baseResult.value
+      : {
+          events: [] as Concert[],
+          checkedAt,
+          notice:
+            "Die Ticketmaster-Umkreissuche konnte nicht geladen werden. Verfügbare Ergebnisse aus weiteren Abfragen werden weiterhin angezeigt.",
+        };
+  const additional =
+    eventfrogResult.status === "fulfilled"
+      ? eventfrogResult.value
+      : {
+          events: [] as Concert[],
+          notice:
+            "Eventfrog konnte nicht geladen werden. Die angezeigte Auswahl ist unvollständig.",
+        };
   const targeted =
     targetedResult.status === "fulfilled"
       ? targetedResult.value
@@ -350,7 +397,12 @@ export async function searchConcerts(
   const { profileMetadata, profiles, focused } = profileResult.value;
   const partial = targeted.partial || focused.partial;
   const events = new Map<string, Concert>();
-  for (const event of [...base.events, ...targeted.events, ...focused.events])
+  for (const event of [
+    ...base.events,
+    ...targeted.events,
+    ...focused.events,
+    ...additional.events,
+  ])
     if (!events.has(event.id)) events.set(event.id, event);
   const families = profiles.map(
     (m) =>
@@ -399,6 +451,7 @@ export async function searchConcerts(
     artistMetadata: profileMetadata,
     notice: [
       base.notice,
+      additional.notice,
       partial
         ? "Einzelne gezielte Künstler- oder Genre-Abfragen konnten nicht geladen werden."
         : "",
