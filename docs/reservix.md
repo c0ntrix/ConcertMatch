@@ -22,6 +22,10 @@ If a daily job fails, inspect its GitHub Actions log, Awin membership/feed avail
 
 ## Validation
 
+Published code commits: `5502996`, `52c434c`; Worker version `0a3aa810-3331-426b-b7be-abb85a380feb`. [Import run 37308870325](https://github.com/c0ntrix/ConcertMatch/actions/runs/37308870325) succeeded and activated 121 batches with 12,009 offers, checked at 2026-10-05T12:21:04.475Z. GitHub CI also passed for both code commits.
+
+A disposable live Hamburg search (50 km, six months, AI off) displayed Reservix offers and successfully saved one. Its native Awin link opened the matching Reservix event `e2577265`, carrying publisher campaign `3113053` and Awin attribution parameters. No order was placed, so this verifies navigation and integration rather than commission settlement.
+
 96 logic/integration tests pass, including actual SQLite snapshot activation, rejected unauthenticated imports, incomplete uploads, geographic filtering, saved Reservix IDs, expiry, affiliate account/product validation and duplicate purchase offers. TypeScript, lint, production build and Wrangler deployment dry run pass. These checks verify the integration, not an actual commission attribution or settled sale. The first real upload exposed same-provider alternate offers that the initial strict schema rejected; the schema now validates those as well, with a regression.
 
 Sources: [Awin link formats](https://success.awin.com/articles/en_US/Knowledge/What-does-an-affiliate-link-look-like), [Awin feed downloads](https://help.awin.com/developers/docs/downloading-feeds-using-create-a-feed), [Awin payment setup](https://success.awin.com/articles/en_US/Knowledge/What-are-the-payment-thresholds), and the authenticated approved programme/feed list. Live confirmation and release IDs are recorded in the operator's private `affiliate-application/HANDOFF.md`.
