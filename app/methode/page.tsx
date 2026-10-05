@@ -170,6 +170,17 @@ export default function Methode() {
       </p>
       <h2>Merkliste und Abstimmung</h2>
       <p>
+        Reservix ergänzt die Suche mit Konzertangeboten aus unserem täglich
+        aktualisierten Partnerfeed. Der Feed enthält nicht immer ein bestätigtes
+        Künstler-Line-up; dann nutzen wir die gemeldeten Musikrichtungen und
+        erfinden keine Künstlernamen. Bei einer länger ausbleibenden
+        Aktualisierung blenden wir den Feed vorübergehend aus. Verfügbarkeit und
+        Preise bestätigt der Ticketanbieter. Über Reservix-Werbelinks können wir
+        bei vergütbaren Käufen eine Provision erhalten. Diese verändert die
+        Matchpunkte und die Konzertreihenfolge nicht. Bei mehreren
+        Ticketangeboten steht Reservix zuerst.
+      </p>
+      <p>
         Merkt euch interessante Konzerte. Auf der Merkliste könnt ihr pro Person
         „Bin dabei“, „Vielleicht“ oder „Eher nicht“ wählen. Bei deiner
         persönlichen Suche ist die Merkliste für dich; erst durch Hinzufügen

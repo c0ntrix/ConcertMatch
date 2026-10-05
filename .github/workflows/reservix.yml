@@ -1,0 +1,26 @@
+name: Update Reservix concerts
+on:
+  schedule:
+    - cron: "20 11 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: reservix-feed
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node --import tsx scripts/sync-reservix.ts
+        env:
+          RESERVIX_FEED_URL: ${{ secrets.RESERVIX_FEED_URL }}
+          RESERVIX_SYNC_TOKEN: ${{ secrets.RESERVIX_SYNC_TOKEN }}
+          CONCERTMATCH_ORIGIN: https://concertmatch.ticore.workers.dev

@@ -225,11 +225,14 @@ export function deduplicateConcerts(concerts: Concert[]) {
       normalize(c.city),
     ].join(":");
     const previous = seen.get(key);
-    if (
-      !previous ||
-      (/\bvip\b/i.test(previous.title) && !/\bvip\b/i.test(c.title))
-    )
-      seen.set(key, c);
+    if (!previous) seen.set(key, c);
+    else {
+      const preferred =
+        /\bvip\b/i.test(previous.title) && !/\bvip\b/i.test(c.title)
+          ? c
+          : previous;
+      seen.set(key, withTicketOffers(preferred, previous, c));
+    }
   }
   // Providers may omit the lineup. Only merge across sources when the actual
   // event title and location agree; different timed performances stay separate.
@@ -253,10 +256,27 @@ export function deduplicateConcerts(concerts: Concert[]) {
       bucket.push(unique.length);
       unique.push(c);
       offers.set(key, bucket);
-    } else if (c.artists.length > unique[index].artists.length)
-      unique[index] = c;
+    } else {
+      const previous = unique[index];
+      unique[index] = withTicketOffers(
+        c.artists.length > previous.artists.length ? c : previous,
+        previous,
+        c,
+      );
+    }
   }
   return unique;
+}
+// Retain purchase choices when deduplicating, without changing musical scores.
+function withTicketOffers(preferred: Concert, ...concerts: Concert[]): Concert {
+  const offers = [
+    ...new Map(
+      concerts
+        .flatMap((c) => c.offers || [{ source: c.source, url: c.url }])
+        .map((offer) => [offer.url, offer]),
+    ).values(),
+  ];
+  return offers.length > 1 ? { ...preferred, offers } : preferred;
 }
 export function matchConcert(
   concert: Concert,

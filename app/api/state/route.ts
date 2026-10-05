@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       providers: {
         ticketmaster: !!config("TICKETMASTER_API_KEY"),
         eventfrog: !!config("EVENTFROG_API_KEY"),
+        reservix: !!config("RESERVIX_SYNC_TOKEN"),
         spotify: !!config("SPOTIFY_CLIENT_ID"),
       },
     };

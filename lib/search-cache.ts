@@ -32,7 +32,7 @@ type Entry = {
 // and votes do not change the search; taste, membership and every filter do.
 export function searchCacheKey(group: Group) {
   return JSON.stringify({
-    version: 2,
+    version: 3,
     id: group.id,
     preferences: group.preferences,
     profiles: group.members.map((m) => ({

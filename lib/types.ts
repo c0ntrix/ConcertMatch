@@ -34,6 +34,7 @@ export type Concert = {
   checkedAt: string;
   status: string;
   providerRank?: number;
+  offers?: { source: string; url: string }[];
 };
 export type Preferences = {
   city: string;

@@ -26,6 +26,7 @@ import ProfileEditor, { type ProfileDraft } from "./profile-editor";
 import AiDebug from "./ai-debug";
 import SearchMode from "./search-mode";
 import SearchLoading from "./search-loading";
+import TicketLinks from "./ticket-links";
 import { defaultPreferences } from "@/lib/catalog";
 import { SearchFields } from "./search-fields";
 import {
@@ -1511,22 +1512,7 @@ function ConcertRow({
                   }).format(c.price)}
               </span>
             )}
-            <a
-              className="ticket-link"
-              href={c.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={
-                "Tickets für " +
-                c.title +
-                " bei " +
-                c.source +
-                " ansehen (öffnet in neuem Tab)"
-              }
-              title={"Verfügbarkeit bei " + c.source + " prüfen"}
-            >
-              Tickets ansehen <ArrowUpRight size={15} aria-hidden="true" />
-            </a>
+            <TicketLinks concert={c} />
           </div>
         </div>
         {result.alternatives && (
@@ -1611,14 +1597,7 @@ function ConcertRow({
               : "Die niedrigste persönliche Passung zählt besonders stark. So überstimmt eine große Fangruppe niemanden."}
           </p>
           <div className="detail-actions">
-            <a
-              className="secondary small"
-              href={c.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Termin & Tickets <ArrowUpRight size={15} />
-            </a>
+            <TicketLinks concert={c} detail />
             <button className="text-link" onClick={() => calendarFile(c)}>
               <CalendarPlus size={16} /> Im Kalender merken
             </button>

@@ -7,7 +7,7 @@ export default function Datenschutz() {
     <main className="legal-content">
       <LegalBack />
       <h1>Datenschutz</h1>
-      <p>Stand: 1. Oktober 2026</p>
+      <p>Stand: 5. Oktober 2026</p>
       <h2>Verantwortlich</h2>
       <p>
         TiCore, Tilo Will, Hankhauser Weg 40, 26180 Rastede, Deutschland.
@@ -140,6 +140,25 @@ export default function Datenschutz() {
         .
       </p>
       <h2>Hosting und technische Sicherheit</h2>
+      <p>
+        Reservix-Konzertangebote übernehmen wir aus dem Veranstaltungsfeed
+        unseres freigeschalteten Awin-Partnerprogramms. Dafür werden keine
+        Musikprofile oder Suchorte an Awin übermittelt. Reservix-Ticketlinks
+        sind als Werbelink gekennzeichnet und führen über Awin zum Anbieter.
+        Erst beim Anklicken erhalten Awin und der Ticketanbieter technisch
+        erforderliche Verbindungsdaten, etwa deine IP-Adresse, sowie unsere
+        öffentliche Partnerkennung und die Angebotskennung. Es werden keine
+        Gruppennamen, Profilkennungen oder vollständigen Musikprofile im Link
+        übermittelt. Für eine Kaufzuordnung können auf den externen Seiten nach
+        deren Datenschutz- und Einwilligungsregeln Tracking-Verfahren eingesetzt
+        werden. ConcertMatch bindet dafür keine Awin-Skripte, Zählpixel oder
+        Werbe-Cookies ein. Mehr Informationen:{" "}
+        <a href="https://www.awin.com/de/datenschutzerklarung">
+          Awin-Datenschutz
+        </a>{" "}
+        und{" "}
+        <a href="https://www.reservix.de/datenschutz">Reservix-Datenschutz</a>.
+      </p>
       <p>
         Der Dienst wird bei Cloudflare, Inc., 101 Townsend St, San Francisco, CA
         94107, USA, bereitgestellt. Technisch erforderliche Verbindungsdaten,

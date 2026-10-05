@@ -32,6 +32,12 @@ export default function Impressum() {
       </p>
       <h2>Quellen</h2>
       <p>
+        ConcertMatch nimmt am Reservix-Partnerprogramm über Awin teil. Bei
+        vergütbaren Käufen über gekennzeichnete Werbelinks erhalten wir eine
+        Provision. Die Konzertreihenfolge richtet sich nach musikalischer
+        Passung. Bei mehreren Ticketangeboten zeigen wir Reservix zuerst.
+      </p>
+      <p>
         Konzertdaten und zugehörige Bilder:{" "}
         <a
           href="https://www.ticketmaster.de"
@@ -40,11 +46,12 @@ export default function Impressum() {
         >
           Ticketmaster
         </a>
-        sowie, nach Freischaltung, Eventfrog. Künstlerdaten und
-        Musikstil-Zuordnungen: MusicBrainz / MetaBrainz, ergänzend Apple iTunes,
-        Ticketmaster und eine eigene Startauswahl. Öffentliche Hörerzahlen:
-        ListenBrainz. Optionale KI-Empfehlungen: Cloudflare Workers AI.
-        Spotify-Importe werden als solche gekennzeichnet.
+        sowie Reservix über den Awin-Veranstaltungsfeed und, nach Freischaltung,
+        Eventfrog. Künstlerdaten und Musikstil-Zuordnungen: MusicBrainz /
+        MetaBrainz, ergänzend Apple iTunes, Ticketmaster und eine eigene
+        Startauswahl. Öffentliche Hörerzahlen: ListenBrainz. Optionale
+        KI-Empfehlungen: Cloudflare Workers AI. Spotify-Importe werden als
+        solche gekennzeichnet.
       </p>
       <nav className="legal-links" aria-label="Weitere Informationen">
         <a href="/datenschutz">Datenschutz</a>

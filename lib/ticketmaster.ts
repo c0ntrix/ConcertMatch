@@ -13,6 +13,7 @@ import { requestPool } from "./request-pool";
 import { withinEuroBudget } from "./concert-budget";
 import { expandedEventPages } from "./concert-coverage";
 import { findEventfrogConcert, searchEventfrog } from "./eventfrog";
+import { findReservixConcert, searchReservix } from "./reservix";
 import {
   eventPages,
   parseEvent,
@@ -248,12 +249,13 @@ async function focusedConcerts(
 }
 
 export async function findConcert(id: string) {
+  if (id.startsWith("reservix:")) return findReservixConcert(id);
   if (id.startsWith("eventfrog:")) return findEventfrogConcert(id);
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id))
     throw new ApiError("Ungültige Konzert-ID.");
   const key = "event:v2:" + id;
   const hit = await cached<Concert>(key);
-  if (hit) return hit;
+  if (hit) return attachReservixOffers(hit);
   const raw = await tm<TicketmasterEvent>(
     "events/" + encodeURIComponent(id) + ".json",
     {
@@ -263,7 +265,29 @@ export async function findConcert(id: string) {
   const c = parseEvent(raw, new Date().toISOString());
   if (!c) throw new ApiError("Dieser Termin ist nicht mehr verfügbar.", 404);
   await putCache(key, c);
-  return c;
+  return attachReservixOffers(c);
+}
+async function attachReservixOffers(c: Concert) {
+  if (!config("RESERVIX_SYNC_TOKEN")) return c;
+  try {
+    const offers = await searchReservix({
+      city: c.city,
+      lat: c.lat,
+      lng: c.lng,
+      radius: 1,
+      from: c.date,
+      to: c.date,
+      budget: 0,
+      discovery: false,
+    });
+    return (
+      deduplicateConcerts([c, ...offers.events]).find(
+        (event) => event.id === c.id,
+      ) || c
+    );
+  } catch {
+    return c;
+  }
 }
 
 async function targetedConcerts(
@@ -333,38 +357,46 @@ export async function searchConcerts(
     path: string,
     params: Record<string, string> = {},
   ) => pool(() => tm<T>(path, params));
-  const [baseResult, targetedResult, profileResult, eventfrogResult] =
-    await Promise.allSettled([
-      config("TICKETMASTER_API_KEY")
-        ? nearbyConcerts(p, request)
-        : Promise.resolve({ events: [] as Concert[], notice: "", checkedAt }),
-      config("TICKETMASTER_API_KEY")
-        ? targetedConcerts(p, favorites, checkedAt, request)
-        : Promise.resolve({ events: [] as Concert[], partial: false }),
-      (async () => {
-        const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
-        const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
-        const profiles = members.map((m) => ({
-          ...m,
-          artists: m.artists.map((a) => profileById.get(a.id) || a),
-        }));
-        let focused: { events: Concert[]; partial: boolean };
-        try {
-          focused = config("TICKETMASTER_API_KEY")
-            ? await focusedConcerts(p, profiles, request)
-            : { events: [], partial: false };
-        } catch {
-          focused = { events: [], partial: true };
-        }
-        return { profileMetadata, profiles, focused };
-      })(),
-      searchEventfrog(p),
-    ]);
+  const [
+    baseResult,
+    targetedResult,
+    profileResult,
+    eventfrogResult,
+    reservixResult,
+  ] = await Promise.allSettled([
+    config("TICKETMASTER_API_KEY")
+      ? nearbyConcerts(p, request)
+      : Promise.resolve({ events: [] as Concert[], notice: "", checkedAt }),
+    config("TICKETMASTER_API_KEY")
+      ? targetedConcerts(p, favorites, checkedAt, request)
+      : Promise.resolve({ events: [] as Concert[], partial: false }),
+    (async () => {
+      const profileMetadata = await enrichArtists(favorites, enrich ? 2 : 0);
+      const profileById = new Map(profileMetadata.map((a) => [a.id, a]));
+      const profiles = members.map((m) => ({
+        ...m,
+        artists: m.artists.map((a) => profileById.get(a.id) || a),
+      }));
+      let focused: { events: Concert[]; partial: boolean };
+      try {
+        focused = config("TICKETMASTER_API_KEY")
+          ? await focusedConcerts(p, profiles, request)
+          : { events: [], partial: false };
+      } catch {
+        focused = { events: [], partial: true };
+      }
+      return { profileMetadata, profiles, focused };
+    })(),
+    searchEventfrog(p),
+    searchReservix(p),
+  ]);
   // Settle every branch before returning or throwing, keeping all I/O attached
   // to this Worker request's lifetime even when the required base query fails.
   if (profileResult.status === "rejected") throw profileResult.reason;
   if (
     baseResult.status === "rejected" &&
+    (reservixResult.status === "rejected" ||
+      !reservixResult.value.events.length) &&
     (eventfrogResult.status === "rejected" ||
       !eventfrogResult.value.events.length) &&
     (targetedResult.status === "rejected" ||
@@ -372,9 +404,18 @@ export async function searchConcerts(
     !profileResult.value.focused.events.length
   )
     throw baseResult.reason;
-  if (!config("TICKETMASTER_API_KEY") && eventfrogResult.status === "rejected")
+  if (
+    !config("TICKETMASTER_API_KEY") &&
+    eventfrogResult.status === "rejected" &&
+    (reservixResult.status === "rejected" ||
+      !reservixResult.value.events.length)
+  )
     throw eventfrogResult.reason;
-  if (!config("TICKETMASTER_API_KEY") && !config("EVENTFROG_API_KEY"))
+  if (
+    !config("TICKETMASTER_API_KEY") &&
+    !config("EVENTFROG_API_KEY") &&
+    !config("RESERVIX_SYNC_TOKEN")
+  )
     throw new ApiError("Die Konzertsuche wird gerade eingerichtet.", 503);
   const base =
     baseResult.status === "fulfilled"
@@ -397,6 +438,14 @@ export async function searchConcerts(
     targetedResult.status === "fulfilled"
       ? targetedResult.value
       : { events: [], partial: true };
+  const reservix =
+    reservixResult.status === "fulfilled"
+      ? reservixResult.value
+      : {
+          events: [] as Concert[],
+          notice:
+            "Reservix konnte nicht geladen werden. Die weiteren Ticketquellen werden weiterhin angezeigt.",
+        };
   const { profileMetadata, profiles, focused } = profileResult.value;
   const partial = targeted.partial || focused.partial;
   const events = new Map<string, Concert>();
@@ -405,6 +454,7 @@ export async function searchConcerts(
     ...targeted.events,
     ...focused.events,
     ...additional.events,
+    ...reservix.events,
   ])
     if (!events.has(event.id)) events.set(event.id, event);
   const families = profiles.map(
@@ -455,6 +505,7 @@ export async function searchConcerts(
     notice: [
       base.notice,
       additional.notice,
+      reservix.notice,
       partial
         ? "Einzelne gezielte Künstler- oder Genre-Abfragen konnten nicht geladen werden."
         : "",
