@@ -2,7 +2,7 @@
 
 ## Live behavior
 
-Ticketmaster remains the active source. Its Discovery API already includes multiple ticketing systems by default (Ticketmaster, Universe, Front Gate and resale); adding their names as source filters would not automatically add new coverage.
+Ticketmaster and the approved Reservix/Awin feed are active sources. See [the Reservix integration and refresh](reservix.md). Ticketmaster's Discovery API already includes multiple ticketing systems by default (Ticketmaster, Universe, Front Gate and resale); adding their names as source filters would not automatically add new coverage.
 
 The area search used to stop after four pages / 800 events. When the provider reports more than 800, it now additionally searches up to four nonoverlapping date windows, with four pages each. This recovers previously hidden dates while respecting Ticketmaster's 1,000-item deep-paging restriction. Maximum: 20 base-search requests and up to 4,000 offers before deduplication; focused genre and favorite searches remain. Actual counts depend on the catalogue, filters and duplicates. Single-day searches and dense windows remain capped, with a visible notice. Partial failures retain available data. Shared concurrency, daily quotas and 15-minute caching apply.
 

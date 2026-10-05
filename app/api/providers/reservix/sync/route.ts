@@ -42,6 +42,18 @@ const event = z
     source: z.literal("Reservix"),
     checkedAt: z.string().datetime(),
     status: z.literal("onsale"),
+    offers: z
+      .array(
+        z
+          .object({
+            source: z.literal("Reservix"),
+            url: z.string().max(200).refine(isReservixAffiliateLink),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(20)
+      .optional(),
   })
   .strict();
 const payload = z

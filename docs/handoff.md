@@ -1,5 +1,7 @@
 # Release handoff
 
+Reservix DE is approved and integrated via Awin (5 October 2026). Read [Reservix deployment and refresh](reservix.md) before changing ticket links or ingestion. The daily workflow uses encrypted GitHub secrets; the Worker imports only public provider data into bounded, expiring catalogue generations. Affiliate links use an asterisk with an adjacent explanation. Match ranking remains musical; Reservix purchase options are displayed first. The original release notes below are historical and do not supersede this integration.
+
 Live: https://concertmatch.ticore.workers.dev/
 Source: https://github.com/c0ntrix/ConcertMatch
 

@@ -91,6 +91,8 @@ See [market research](docs/market-research.md) and [handoff](docs/handoff.md).
 
 ## Live deployment
 
+Reservix DE is now an approved affiliate source and supplements Ticketmaster through a daily Awin feed import. See [Reservix data, tracking and refresh](docs/reservix.md). Eligible purchases through its marked product links can yield commission; no earnings are claimed. The integration does not alter musical scores or ranking.
+
 ConcertMatch is published at https://concertmatch.ticore.workers.dev/ in the operator’s own Cloudflare account. Visitors can use the app without an account. The database is D1, with a Western Europe location hint. No paid plan was activated during setup.
 
 After an intentional release, run `node tests/deployment-smoke.mjs https://concertmatch.ticore.workers.dev` to check the public flow. This creates a uniquely named disposable group and deletes only that group afterward. This is a functional check, not a load test.

@@ -92,6 +92,16 @@ test("authenticated snapshot activation, incomplete import fallback, search geog
     source: "Reservix",
     checkedAt,
     status: "onsale",
+    offers: [
+      {
+        source: "Reservix",
+        url: "https://www.awin1.com/pclick.php?p=5678&a=3113053&m=31293",
+      },
+      {
+        source: "Reservix",
+        url: "https://www.awin1.com/pclick.php?p=9999&a=3113053&m=31293",
+      },
+    ],
   };
   const p = {
     city: "Berlin",

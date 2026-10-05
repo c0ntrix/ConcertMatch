@@ -9,13 +9,18 @@ export default function TicketLinks({
   concert: Concert;
   detail?: boolean;
 }) {
-  const offers = [
+  const allOffers = [
     ...(concert.offers || [{ source: concert.source, url: concert.url }]),
   ].sort(
     (a, b) =>
       Number(isReservixAffiliateLink(b.url)) -
       Number(isReservixAffiliateLink(a.url)),
   );
+  const offers = allOffers.filter(
+    (offer, index) =>
+      allOffers.findIndex((other) => other.source === offer.source) === index,
+  );
+  const affiliate = offers.some((offer) => isReservixAffiliateLink(offer.url));
   return (
     <>
       {offers.map((offer) => {
@@ -39,11 +44,16 @@ export default function TicketLinks({
               : detail
                 ? "Termin & Tickets"
                 : "Tickets ansehen"}
-            {affiliate && <small className="affiliate-label">Werbelink</small>}
+            {affiliate && <span aria-hidden="true">*</span>}
             <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         );
       })}
+      {affiliate && (
+        <small className="affiliate-label">
+          * Bei Kauf erhalten wir eine Provision.
+        </small>
+      )}
     </>
   );
 }
