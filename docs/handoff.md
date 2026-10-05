@@ -3,6 +3,8 @@
 Live: https://concertmatch.ticore.workers.dev/
 Source: https://github.com/c0ntrix/ConcertMatch
 
+Latest release (2026-10-05): expanded date coverage, optional Eventfrog adapter and defensive Ticketmaster attraction parsing. See [concert-source handoff](concert-sources.md) for active versus pending sources, primary documentation and live verification. Production version: `1418f036-70bd-4e96-a880-1525d28198c3`. The Berlin / 1,000 km / one-year comparison increased raw candidate events from 1,772 to 3,216. Eventfrog remains inactive without an authorized Public API key. No new affiliate approvals or commissions were established.
+
 ## Delivered
 
 A minimal German-language entry for 2–8 people; editable artist profiles; a Spotify JSON listening-history importer that processes files locally; real Ticketmaster concert discovery; distance, date and price filters; explainable ranking with a strong weight on the least-matched person; suggestions for artists nobody in the group has selected; private group invitations; persistent shared shortlists and individual votes; calendar export; profile export and deletion; imprint and privacy pages.
