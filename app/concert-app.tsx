@@ -824,6 +824,7 @@ export default function ConcertApp() {
       </header>
       <main
         id="main"
+        tabIndex={-1}
         className={
           "main-content " +
           (group && !joining && !editingSelection ? "has-results" : "")
@@ -1452,7 +1453,24 @@ function ConcertRow({
             </span>
           )}
         </div>
-        <h2>{c.title}</h2>
+        <div className="concert-heading">
+          <h2>{c.title}</h2>
+          <a
+            className="text-link concert-listen"
+            href={
+              "https://open.spotify.com/search/" +
+              encodeURIComponent(c.artists[0]?.name || c.title)
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={
+              (c.artists[0]?.name || c.title) +
+              " auf Spotify anhören (öffnet in neuem Tab)"
+            }
+          >
+            Auf Spotify reinhören <ArrowUpRight size={14} aria-hidden="true" />
+          </a>
+        </div>
         <p className="venue">
           {c.venue}
           {distanceLabel(m, group.preferences).startsWith("in ")
@@ -1597,17 +1615,6 @@ function ConcertRow({
               rel="noopener noreferrer"
             >
               Termin & Tickets <ArrowUpRight size={15} />
-            </a>
-            <a
-              className="text-link"
-              href={
-                "https://open.spotify.com/search/" +
-                encodeURIComponent(c.artists[0]?.name || c.title)
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Auf Spotify reinhören <ArrowUpRight size={14} />
             </a>
             <button className="text-link" onClick={() => calendarFile(c)}>
               <CalendarPlus size={16} /> Im Kalender merken
