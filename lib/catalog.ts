@@ -134,15 +134,36 @@ export const ARTISTS: Artist[] = entries.map(([name, genres]) => ({
   name,
   genres,
 }));
-// These are only examples in the empty picker, never a ranking signal.
-export const STARTER_ARTISTS = [
+// Spotify's published 2025 Germany/global top artists inform the empty picker.
+// This is an editorial snapshot, not personalized tracking or a matching signal.
+// Source: https://spotify_presse.prowly.com/437960-spotify-2025-wrapped-das-sind-die-top-kunstlerinnen-songs-alben-podcasts-und-horbucher-des-jahres-in-deutschland-und-der-welt
+export const POPULAR_ARTISTS = [
   "Taylor Swift",
-  "Kendrick Lamar",
-  "Rammstein",
+  "Pashanim",
+  "Linkin Park",
+  "The Weeknd",
   "Billie Eilish",
-  "Daft Punk",
-  "AnnenMayKantereit",
-].map((name) => ARTISTS.find((a) => a.name === name)!);
+  "Bad Bunny",
+  "Drake",
+  "Kendrick Lamar",
+  "Bruno Mars",
+  "Ariana Grande",
+  "Jazeek",
+  "Bonez MC",
+  "Luciano",
+  "RAF Camora",
+  "reezy",
+  "Aymen",
+  "Arijit Singh",
+  "Fuerza Regida",
+].map(
+  (name) =>
+    ARTISTS.find((a) => a.name === name) || {
+      id: "catalog:" + normalize(name),
+      name,
+      genres: [],
+    },
+);
 const places: [string, number, number][] = [
   ["Hamburg", 53.5511, 9.9937],
   ["Berlin", 52.52, 13.405],
@@ -205,7 +226,51 @@ const places: [string, number, number][] = [
   ["Passau", 48.5667, 13.4319],
   ["Ingolstadt", 48.7665, 11.4258],
 ];
-export const CITIES = places.map(([name, lat, lng]) => ({ name, lat, lng }));
+const majorCities = [
+  "Berlin",
+  "Hamburg",
+  "München",
+  "Köln",
+  "Frankfurt am Main",
+  "Stuttgart",
+  "Düsseldorf",
+  "Leipzig",
+  "Dortmund",
+  "Essen",
+  "Bremen",
+  "Dresden",
+  "Hannover",
+  "Nürnberg",
+  "Duisburg",
+  "Bochum",
+  "Wuppertal",
+  "Bielefeld",
+  "Bonn",
+  "Münster",
+  "Mannheim",
+  "Karlsruhe",
+  "Augsburg",
+  "Wiesbaden",
+  "Braunschweig",
+  "Kiel",
+  "Aachen",
+  "Chemnitz",
+  "Halle (Saale)",
+  "Magdeburg",
+  "Freiburg",
+  "Mainz",
+  "Erfurt",
+  "Rostock",
+  "Kassel",
+  "Saarbrücken",
+  "Potsdam",
+  "Hagen",
+  "Lübeck",
+];
+export const CITIES = majorCities.flatMap((name) => {
+  const place = places.find((p) => p[0] === name);
+  return place ? [{ name, lat: place[1], lng: place[2] }] : [];
+});
 export function defaultPreferences(): Preferences {
   const now = new Date();
   const later = addCalendarMonths(now, 6);
@@ -218,5 +283,6 @@ export function defaultPreferences(): Preferences {
     to: localDate(later),
     budget: 0,
     discovery: true,
+    aiSearch: false,
   };
 }

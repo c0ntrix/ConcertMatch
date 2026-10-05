@@ -5,6 +5,8 @@ import {
   parseRecommendations,
   mapRecommendations,
   recommendationSystem,
+  AI_INPUT_BYTES,
+  AI_MAX_CANDIDATES,
 } from "../lib/recommendations";
 import { rankConcerts } from "../lib/matching";
 import { defaultPreferences } from "../lib/catalog";
@@ -70,6 +72,35 @@ test("only known candidate IDs and a complete score vector are accepted", () => 
   ])
     assert.throws(() => parseRecommendations({ recommendations: rows }, input));
   assert.throws(() => parseRecommendations("not json", input));
+});
+test("all 50 selected artists reach the model when the context fits", () => {
+  const artists = Array.from({ length: 50 }, (_, i) => ({
+    id: String(i),
+    name: "Favorite " + i,
+    genres: [],
+  }));
+  const input = recommendationInput(
+    [event("one")],
+    [{ ...members[0], artists }],
+    p,
+  );
+  assert.equal(JSON.parse(input.content).profiles[0].artists.length, 50);
+  assert.ok(input.content.includes("Favorite 49"));
+});
+test("reversing billed headliner/support does not share an assessment", () => {
+  const artists = [
+    { id: "a", name: "Headliner", genres: [] },
+    { id: "b", name: "Support", genres: [] },
+  ];
+  const input = recommendationInput(
+    [
+      event("one", "Show", { artists }),
+      event("two", "Other show", { artists: [...artists].reverse() }),
+    ],
+    members,
+    p,
+  );
+  assert.equal(input.lineups.length, 2);
 });
 test("unknown-act confidence is capped and assessments apply to real tour dates only", () => {
   const input = recommendationInput(
@@ -152,6 +183,34 @@ test("AI can discover relevant acts without genre metadata, while direct favorit
   );
   assert.ok(!ranked.some((m) => m.concert.id === "unjudged"));
 });
+
+test("a partial AI assessment keeps unassessed style matches and honors explicit rejections", () => {
+  const profile = {
+    ...members[0],
+    artists: [{ id: "taste", name: "Favorite", genres: ["synth-pop"] }],
+  };
+  const events = ["assessed", "unassessed", "rejected"].map((id) =>
+    event(id, id, {
+      artists: [{ id, name: id, genres: ["synth-pop"] }],
+      genres: ["synth-pop"],
+    }),
+  );
+  const ranked = rankConcerts(events, [profile], p, {
+    assessed: {
+      scores: { "0": 70 },
+      reason: "Melodischer Synth-Pop.",
+      confidence: "high",
+    },
+    rejected: {
+      scores: { "0": 0 },
+      reason: "Der musikalische Schwerpunkt passt nicht.",
+      confidence: "high",
+    },
+  });
+  assert.ok(ranked.some((m) => m.concert.id === "assessed"));
+  assert.ok(ranked.some((m) => m.concert.id === "unassessed" && m.score > 0));
+  assert.ok(!ranked.some((m) => m.concert.id === "rejected"));
+});
 test("large artist imports and candidate sets stay within the inference input budget", () => {
   const big = Array.from({ length: 8 }, (_, i) => ({
     ...members[0],
@@ -167,10 +226,10 @@ test("large artist imports and candidate sets stay within the inference input bu
     big,
     p,
   );
-  assert.ok(new TextEncoder().encode(input.content).length <= 15000);
+  assert.ok(new TextEncoder().encode(input.content).length <= AI_INPUT_BYTES);
   assert.equal(JSON.parse(input.content).profiles.length, 8);
   assert.ok(input.lineups.length > 0);
-  assert.ok(input.lineups.length <= 180);
+  assert.ok(input.lineups.length <= AI_MAX_CANDIDATES);
 });
 test("500 and 1000 km actually admit distant concerts but keep the radius boundary", () => {
   const nearby = event("450km", "Taylor Swift", { lat: p.lat - 4 });

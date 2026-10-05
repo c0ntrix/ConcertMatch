@@ -103,7 +103,7 @@ function fromMB(a: MBArtist): Artist {
       .slice(0, 12),
     description: [a.disambiguation, a.country]
       .filter(Boolean)
-      .join(" · ")
+      .join(", ")
       .slice(0, 180),
     url: "https://musicbrainz.org/artist/" + a.id,
   };
@@ -144,7 +144,7 @@ async function withPopularity(artists: Artist[]): Promise<Artist[]> {
 export async function searchMusic(
   query: string,
 ): Promise<{ artists: Artist[]; notice?: string }> {
-  const key = "music:v2:" + normalize(query);
+  const key = "music:v3:" + normalize(query);
   const hit = await cached<{ artists: Artist[]; notice?: string }>(key);
   if (hit) return hit;
   let artists: Artist[];
@@ -171,8 +171,8 @@ export async function searchMusic(
           Number(normalize(a.name) === normalize(query)) ||
         Number(normalize(b.name).startsWith(normalize(query))) -
           Number(normalize(a.name).startsWith(normalize(query))) ||
-        Number(!!b.description?.endsWith("· DE")) -
-          Number(!!a.description?.endsWith("· DE")) ||
+        Number(!!b.description?.endsWith(", DE")) -
+          Number(!!a.description?.endsWith(", DE")) ||
         (b.listeners || 0) - (a.listeners || 0),
     );
   } catch {
@@ -217,7 +217,7 @@ export async function searchMusic(
       url: a.artistLinkUrl,
     }));
     notice =
-      "Zusätzlicher Musikkatalog · detaillierte Stilrichtungen sind gerade teilweise nicht verfügbar.";
+      "Ein zusätzlicher Musikkatalog wird verwendet. Detaillierte Stilrichtungen sind teilweise nicht verfügbar.";
   }
   const local = ARTISTS.filter(
     (a) =>

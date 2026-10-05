@@ -44,6 +44,7 @@ export type Preferences = {
   to: string;
   budget: number;
   discovery: boolean;
+  aiSearch?: boolean;
 };
 export type Vote = {
   eventId: string;
@@ -80,6 +81,7 @@ export type RecommendationDebug = {
   status:
     | "live"
     | "cache"
+    | "results-cache"
     | "no-candidates"
     | "missing-binding"
     | "in-progress"

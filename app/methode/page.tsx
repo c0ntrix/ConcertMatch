@@ -1,21 +1,19 @@
-import Link from "next/link";
+import LegalBack from "../legal-back";
 import type { Metadata } from "next";
 export const metadata: Metadata = {
-  title: "Wie das Matching funktioniert · ConcertMatch",
+  title: "Wie das Matching funktioniert – ConcertMatch",
 };
 export default function Methode() {
   return (
     <main className="legal-content">
-      <Link className="back-link" href="/">
-        ← Zur Konzertsuche
-      </Link>
-      <h1>Deine Musik. Dein nächstes Konzert.</h1>
+      <LegalBack />
+      <h1>Wie die Konzertsuche funktioniert</h1>
       <p>
         ConcertMatch findet Konzerte für deinen Musikgeschmack. Du kannst allein
         suchen oder mit bis zu sieben weiteren Personen gemeinsame Favoriten
-        finden. Ihr müsst dafür nicht dieselben Playlists haben.
+        finden.
       </p>
-      <h2>Erst die Musik, dann der Termin</h2>
+      <h2>Künstler und Suchfilter</h2>
       <p>
         Wählt ein paar Lieblingskünstler aus dem Musikkatalog oder fügt eine
         Liste mit Namen ein. Drei bis fünf Künstler sind ein guter Start. Falls
@@ -29,22 +27,28 @@ export default function Methode() {
       <h2>So entstehen Matchpunkte</h2>
       <p>
         Wir vergleichen jeden auftretenden Künstler mit jeder Person in der
-        Gruppe. Ein Lieblingskünstler bringt dieser Person 100 Punkte. Zunächst
-        erscheinen Ergebnisse anhand von Favoriten und Genres. Danach beurteilt
-        ein Sprachmodell musikalische Nähe, Klang, Szene und Energie für jede
-        Person separat. Diese Einschätzung berücksichtigt bis zu 20 Favoriten
-        pro Profil und bis zu 180 verschiedene Konzert-Line-ups. Bei sehr langen
-        Eingaben fällt die Auswahl kleiner aus. Das Modell bewertet die bis zu
-        16 geeignetsten Line-ups; Tourtermine desselben Line-ups teilen diese
-        Einschätzung. Ohne Modellbewertung: Passende Grundrichtungen wie Pop
-        oder Hip-Hop bringen höchstens 40 Punkte. Gemeinsame konkrete Stile wie
-        Emo-Rap bringen bis zu 82 Punkte. Wir berücksichtigen die gesamte
-        Künstlerauswahl einer Person: Die beste stilistische Verbindung zählt zu
-        60 %, der Durchschnitt aller Verbindungen zu 40 %. Nebensächliche
-        Genre-Tags zählen weniger als prägende Stilrichtungen. Support-Acts
-        erhalten bei stilistischen Empfehlungen ein geringeres Gewicht als der
-        erste angekündigte Act. Fehlen passende oder ausreichende Daten, gibt es
-        0 Punkte – das heißt nicht, dass euch die Musik nicht gefallen könnte.
+        Gruppe. Ein Lieblingskünstler bringt dieser Person 100 Punkte. Die
+        schnelle Suche nutzt Favoriten und automatisch ergänzte Musikstile. Wenn
+        ihr vor dem Start „Erweiterte KI-Suche“ einschaltet, beurteilt
+        zusätzlich ein Sprachmodell musikalische Nähe, Klang, Szene und Energie
+        für jede Person separat. Die Ergebnisse erscheinen nach dem
+        vollständigen Abgleich und werden nicht später umsortiert. Diese
+        Einschätzung berücksichtigt bis zu 50 Favoriten pro Profil und bis zu
+        360 verschiedene Konzert-Line-ups, innerhalb einer begrenzten
+        Anfragegröße. Bei sehr langen Eingaben fällt die Auswahl kleiner aus.
+        Das Modell bewertet 16 geeignete Line-ups, sofern so viele verfügbar
+        sind. Tourtermine desselben Line-ups teilen diese Einschätzung. Eine
+        Bewertung kann auch eine geringe Passung ergeben. Weitere Konzerte
+        behalten ihren Abgleich nach Favoriten und Musikstilen. Ohne
+        Modellbewertung: Passende Grundrichtungen wie Pop oder Hip-Hop bringen
+        höchstens 40 Punkte. Gemeinsame konkrete Stile wie Emo-Rap bringen bis
+        zu 82 Punkte. Wir berücksichtigen die gesamte Künstlerauswahl einer
+        Person: Die beste stilistische Verbindung zählt zu 60 %, der
+        Durchschnitt aller Verbindungen zu 40 %. Nebensächliche Genre-Tags
+        zählen weniger als prägende Stilrichtungen. Support-Acts erhalten bei
+        stilistischen Empfehlungen ein geringeres Gewicht als der erste
+        angekündigte Act. Fehlen passende oder ausreichende Daten, gibt es 0
+        Punkte – das heißt nicht, dass euch die Musik nicht gefallen könnte.
       </p>
       <p className="method-formula">
         Gruppenwert = 65 % niedrigster Einzelwert + 35 % Durchschnitt
@@ -55,14 +59,17 @@ export default function Methode() {
         dominiert niemand die gemeinsame Auswahl. Bei einer Person entspricht
         der angezeigte Wert ihrer persönlichen Passung.
       </p>
-      <h2>Entdeckungen sind begründete Vermutungen</h2>
+      <h2>KI-Bewertungen und neue Künstler</h2>
       <p>
         Ein Künstler ist „neu für euch“, wenn er in keiner eurer Auswahlen
         vorkommt. Seine Musikrichtungen können trotzdem gut passen. Diese
         Empfehlungen beruhen auf musikalischen Metadaten und dem Wissen des
-        Sprachmodells Llama 3.3 bei Cloudflare Workers AI. Es werden keine
-        Audiodateien analysiert und keine Termine vom Modell erzeugt. Im
-        aufklappbaren Ergebnis steht die Einschätzung für jede Person.
+        Sprachmodells Llama 4 Scout bei Cloudflare Workers AI, wenn ihr die
+        KI-Suche wählt. Die KI sieht auch Konzertkandidaten ohne passende
+        Genre-Tags; sie ist nicht auf die bereits angezeigten Treffer
+        beschränkt. Es werden keine Audiodateien analysiert und keine Termine
+        vom Modell erzeugt. Im aufklappbaren Ergebnis steht die Einschätzung für
+        jede Person.
       </p>
       <p>
         Breite Genres können ungenau sein. Ein Indie-Label allein sagt wenig
@@ -72,12 +79,11 @@ export default function Methode() {
       <p>
         Modellwerte reichen bis 92 Punkte; bei unsicherem Wissen höchstens bis
         45. Das Modell kann sich irren. Ist die erweiterte KI-Suche momentan
-        deaktiviert, bleiben die Genre-Ergebnisse verfügbar und sind als
-        vorläufig gekennzeichnet. Die genaue Bewertung erscheint nach dem ersten
-        Laden; die Reihenfolge kann sich dabei ändern. Eure Favoriten bleiben
-        unabhängig davon berücksichtigt.
+        nicht verfügbar, zeigen wir die Ergebnisse nach Favoriten und
+        Musikstilen mit einem entsprechenden Hinweis. Die zusätzliche Suche
+        dauert länger. Eure Favoriten bleiben unabhängig davon berücksichtigt.
       </p>
-      <h2>Bekannte Acts und kleine Entdeckungen</h2>
+      <h2>Bekannte und weniger bekannte Künstler</h2>
       <p>
         Bei vergleichbarer musikalischer Passung bevorzugen wir bekannte Acts.
         Dafür verwenden wir verfügbare Hörerzahlen der ListenBrainz-Community
@@ -101,21 +107,25 @@ export default function Methode() {
         nicht als gemeinsame Entdeckung an. Bereits gewählte Favoriten bleiben
         auch mit unterschiedlicher Passung sichtbar.
       </p>
-      <h2>Top-Künstler ohne Wartezeit finden</h2>
+      <h2>Künstler aus Spotify auswählen</h2>
       <p>
         Öffne in der Spotify-App über dein Profilbild die Hörstatistiken, sofern
         sie bei dir verfügbar sind. Dort kannst du deine Top-Künstler nachsehen.
         Du kannst mehrere Namen auf einmal bei uns einfügen. Ein Datenexport ist
         für die Konzertsuche nicht nötig.
       </p>
-      <h2>Optional: vorhandenen Hörverlauf importieren</h2>
+      <h2>Spotify-Hörverlauf importieren</h2>
       <p>
-        Standard- und erweiterte Spotify-Hörverlaufsdateien werden direkt in
-        eurem Browser ausgewertet. Wir sortieren Künstler nach gesamter Hörzeit,
-        lassen Podcasts und Wiedergaben unter 30 Sekunden weg und schlagen bis
-        zu 30 Künstler vor. Ihr bestätigt und bearbeitet die Auswahl selbst. Der
-        direkte Spotify-Import ist optional und nur verfügbar, wenn die
-        Anbindung freigeschaltet ist.
+        Standard- und erweiterte Spotify-Hörverläufe werden als ZIP oder
+        einzelne Audio-JSON-Dateien direkt in eurem Browser ausgewertet, auch
+        aus mehreren Jahren. Die letzten zwölf Monate und 20 Künstler sind
+        vorausgewählt. Ihr könnt einzelne Jahre oder den gesamten Verlauf und
+        10, 20, 30 oder 50 Künstler wählen. Wir sortieren nach Hörzeit und
+        lassen Podcasts, Hörbücher, Videos und Wiedergaben unter 30 Sekunden
+        weg. Mehr Künstler sind nicht automatisch besser: Selten gehörte Acts
+        können euren Geschmack verwässern. Ihr bestätigt und bearbeitet die
+        Auswahl selbst. Der direkte Spotify-Import ist optional und nur
+        verfügbar, wenn die Anbindung freigeschaltet ist.
       </p>
       <h2>Datenquellen</h2>
       <p>
@@ -154,7 +164,7 @@ export default function Methode() {
         Ticketplattformen. Ein Verkaufsstatus ist keine Bestätigung verfügbarer
         Tickets: Ausverkaufte Termine können weiterhin im Katalog stehen.
       </p>
-      <h2>Merken und entscheiden</h2>
+      <h2>Merkliste und Abstimmung</h2>
       <p>
         Merkt euch interessante Konzerte. Auf der Merkliste könnt ihr pro Person
         „Bin dabei“, „Vielleicht“ oder „Eher nicht“ wählen. Bei deiner
@@ -163,7 +173,7 @@ export default function Methode() {
         Kalendereintrag merkt den Tag vor; Uhrzeit und Änderungen bestätigt der
         Ticketanbieter.
       </p>
-      <h2>Eure Daten bleiben überschaubar</h2>
+      <h2>Datenschutz und Speicherung</h2>
       <p>
         Es gibt kein öffentliches Profil und keine Personensuche. Der
         Einladungslink öffnet eure Runde, also teilt ihn gezielt. Die Gruppe
@@ -171,10 +181,10 @@ export default function Methode() {
         notwendiges Cookie. Löscht ihr dieses Cookie, braucht ihr einen neuen
         Einladungslink und legt gegebenenfalls ein neues Profil an.
       </p>
-      <p>
-        <a href="/datenschutz">Daten exportieren oder löschen</a> ·{" "}
+      <nav className="legal-links" aria-label="Weitere Informationen">
+        <a href="/datenschutz">Daten exportieren oder löschen</a>
         <a href="/impressum">Kontakt</a>
-      </p>
+      </nav>
     </main>
   );
 }

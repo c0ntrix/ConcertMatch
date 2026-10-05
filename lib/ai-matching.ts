@@ -9,7 +9,9 @@ import { env } from "cloudflare:workers";
 import { db, cached, hash } from "./server";
 import {
   MODEL,
+  AI_ASSESSMENT_TARGET,
   recommendationSystem,
+  recommendationFormat,
   recommendationInput,
   parseRecommendations,
   mapRecommendations,
@@ -20,7 +22,7 @@ import type { Artist, Concert, Group, RecommendationDebug } from "./types";
 const fallback = {
   mode: "genres" as const,
   notice:
-    "Erweiterte KI-Suche ist momentan deaktiviert. Die Ergebnisse beruhen auf Favoriten und Genres.",
+    "Die KI ist gerade nicht verfügbar. Deine Ergebnisse beruhen auf Favoriten und Musikstilen.",
 };
 type CachedAssessment = {
   rows: ReturnType<typeof parseRecommendations>;
@@ -61,9 +63,9 @@ export async function recommendConcerts(
       debug: diagnostics(),
     };
   const key =
-    `recommendations:${group.id}:` + (await hash("v4:" + input.content));
-  // Keep the existing key and accept legacy row-only entries to avoid spending
-  // inference budget again just because debugging has been added.
+    `recommendations:${group.id}:` +
+    (await hash("v7:" + MODEL + ":" + input.content));
+  // Scope caches to the model and prompt version; support row-only cache entries.
   const hit = await cached<
     CachedAssessment | ReturnType<typeof parseRecommendations>
   >(key);
@@ -97,8 +99,8 @@ export async function recommendConcerts(
     .bind(leaseKey, Math.ceil(now / 1000) + 60, Math.floor(now / 1000))
     .first();
   if (!lease) return unavailable("in-progress");
-  // At most 15 KB data + system prompt, 3000 output tokens. Reserve well above
-  // that model's worst-case token charge; refund only when usage is reported.
+  // At most 24 KB data + system prompt and 3000 output tokens. The cheaper
+  // Scout permits broader coverage within the same daily free-tier ceiling.
   const reservation = INFERENCE_RESERVATION;
   const day = Math.floor(now / 86400000);
   const dayKey = "ai:day:" + day;
@@ -136,20 +138,33 @@ export async function recommendConcerts(
       MODEL,
       {
         messages: [
-          { role: "system", content: recommendationSystem(input.memberCount) },
+          {
+            role: "system",
+            content: recommendationSystem(
+              input.memberCount,
+              input.lineups.length,
+            ),
+          },
           { role: "user", content: input.content },
         ],
         max_tokens: 3000,
-        temperature: 0.1,
-        response_format: { type: "json_object" },
+        temperature: 0.15,
+        top_p: 0.9,
+        response_format: recommendationFormat(
+          input.memberCount,
+          input.lineups.length,
+        ),
       },
-      { signal: AbortSignal.timeout(40000) },
+      { signal: AbortSignal.timeout(25000) },
     );
     const envelope = output as {
       response?: unknown;
+      choices?: { message?: { content?: string } }[];
       usage?: InferenceUsage;
     };
-    debug.output = displayOutput(envelope.response);
+    const response =
+      envelope.choices?.[0]?.message?.content ?? envelope.response;
+    debug.output = displayOutput(response);
     debug.outputSource = "raw";
     // Only expose usage fields, never the provider envelope or headers.
     if (envelope.usage)
@@ -168,8 +183,12 @@ export async function recommendConcerts(
       debug.budget.used -= reservation - charge;
     }
     phase = "invalid-output";
-    const rows = parseRecommendations(envelope.response, input);
+    const rows = parseRecommendations(response, input);
     debug.assessedCount = rows.length;
+    if (rows.length < Math.min(AI_ASSESSMENT_TARGET, input.lineups.length))
+      throw new RecommendationValidationError(
+        "Zu wenige Konzertkünstler bewertet. Die Suche verwendet den Abgleich nach Favoriten und Musikstilen.",
+      );
     phase = "storage-error";
     // Store only if this exact set of profiles still exists. This prevents an
     // in-flight response from recreating a cache after profile/data deletion.

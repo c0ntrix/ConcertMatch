@@ -26,7 +26,13 @@ type SearchFieldProps = {
   onChange: (preferences: Preferences) => void;
 };
 
-type Period = "four-weeks" | "three-months" | "six-months" | "custom";
+type Period =
+  | "four-weeks"
+  | "three-months"
+  | "six-months"
+  | "nine-months"
+  | "twelve-months"
+  | "custom";
 
 const CITY_NAMES = CITIES.map((city) => city.name);
 const RADII = [25, 50, 100, 150, 200, 300, 500, 750, 1000];
@@ -34,6 +40,8 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "four-weeks", label: "Nächste 4 Wochen" },
   { value: "three-months", label: "Nächste 3 Monate" },
   { value: "six-months", label: "Nächste 6 Monate" },
+  { value: "nine-months", label: "Nächste 9 Monate" },
+  { value: "twelve-months", label: "Nächste 12 Monate" },
   { value: "custom", label: "Datum wählen" },
 ];
 
@@ -43,7 +51,18 @@ function periodRange(period: Exclude<Period, "custom">) {
   const to =
     period === "four-weeks"
       ? offsetDays(from, 28)
-      : localDate(addCalendarMonths(start, period === "three-months" ? 3 : 6));
+      : localDate(
+          addCalendarMonths(
+            start,
+            period === "three-months"
+              ? 3
+              : period === "six-months"
+                ? 6
+                : period === "nine-months"
+                  ? 9
+                  : 12,
+          ),
+        );
   return { from, to };
 }
 

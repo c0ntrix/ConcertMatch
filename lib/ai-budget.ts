@@ -1,4 +1,4 @@
-export const INFERENCE_RESERVATION = 1500;
+export const INFERENCE_RESERVATION = 1200;
 export const INFERENCE_DAILY_LIMIT = 8000;
 export type InferenceUsage = {
   neurons?: number;
@@ -6,7 +6,7 @@ export type InferenceUsage = {
   completion_tokens?: number;
 };
 
-// Llama 3.3 FP8 Fast pricing, checked 2026-09-30:
+// Llama 4 Scout pricing, checked 2026-10-01:
 // developers.cloudflare.com/workers-ai/platform/pricing/
 // Keep a 25% cushion; unknown or failed requests retain the whole reservation.
 export function inferenceCharge(usage?: InferenceUsage) {
@@ -27,7 +27,7 @@ export function inferenceCharge(usage?: InferenceUsage) {
       output >= 0
     ))
       return INFERENCE_RESERVATION;
-    neurons = (input * 26668 + output * 204805) / 1000000;
+    neurons = (input * 24545 + output * 77273) / 1000000;
   }
   return Math.min(INFERENCE_RESERVATION, Math.ceil(neurons * 1.25));
 }

@@ -1,15 +1,13 @@
-import Link from "next/link";
+import LegalBack from "../legal-back";
 import type { Metadata } from "next";
 import PrivacyControls from "./privacy-controls";
-export const metadata: Metadata = { title: "Datenschutz · ConcertMatch" };
+export const metadata: Metadata = { title: "Datenschutz – ConcertMatch" };
 export default function Datenschutz() {
   return (
     <main className="legal-content">
-      <Link className="back-link" href="/">
-        ← Zur Konzertsuche
-      </Link>
+      <LegalBack />
       <h1>Datenschutz</h1>
-      <p>Stand: 30. September 2026</p>
+      <p>Stand: 1. Oktober 2026</p>
       <h2>Verantwortlich</h2>
       <p>
         TiCore, Tilo Will, Hankhauser Weg 40, 26180 Rastede, Deutschland.
@@ -17,11 +15,12 @@ export default function Datenschutz() {
       </p>
       <h2>Was wir für eure Konzertsuche speichern</h2>
       <p>
-        Wir speichern die von euch gewählten Namen (Pseudonyme sind möglich),
-        Künstler und Musikrichtungen sowie Gruppen, Suchort, Suchfilter,
-        gemerkte Konzerte und Stimmen. Die Verarbeitung dient der von euch
-        angefragten Funktion (Art. 6 Abs. 1 lit. b DSGVO). Wir erstellen keine
-        öffentlichen Profile und verwenden die Auswahl nicht für Werbung.
+        Wir speichern automatisch vergebene Profilbezeichnungen oder eure
+        optionalen Rufnamen (Pseudonyme sind möglich), Künstler und
+        Musikrichtungen sowie Gruppen, Suchort, Suchfilter, gemerkte Konzerte
+        und Stimmen. Die Verarbeitung dient der von euch angefragten Funktion
+        (Art. 6 Abs. 1 lit. b DSGVO). Wir erstellen keine öffentlichen Profile
+        und verwenden die Auswahl nicht für Werbung.
       </p>
       <p>
         Wir verwenden ein technisch notwendiges Cookie namens{" "}
@@ -55,12 +54,14 @@ export default function Datenschutz() {
       </p>
       <h2>Import von Hörverläufen</h2>
       <p>
-        Ausgewählte Spotify-JSON-Dateien werden ausschließlich im
-        Arbeitsspeicher deines Browsers verarbeitet. Die vollständigen Dateien,
-        einzelne Wiedergaben, Zeitstempel, Geräteinformationen und
-        gegebenenfalls enthaltene IP-Adressen werden nicht an ConcertMatch
-        hochgeladen. Nur die Künstlerauswahl wird nach deiner Bestätigung als
-        Profil gespeichert. Du kannst sie vorher ändern.
+        Ausgewählte Spotify-ZIP-Archive und Audio-JSON-Dateien werden
+        ausschließlich im Arbeitsspeicher deines Browsers verarbeitet. Die
+        vollständigen Dateien, einzelne Wiedergaben, Zeitstempel,
+        Geräteinformationen und gegebenenfalls enthaltene IP-Adressen werden
+        nicht an ConcertMatch hochgeladen. Nur die Künstlerauswahl wird nach
+        deiner Bestätigung als Profil gespeichert. Du kannst Zeitraum und Anzahl
+        wählen und die Auswahl vorher ändern. Podcasts, Hörbücher und
+        Video-Hörverläufe werden nicht verwendet.
       </p>
       <p>
         Wenn eine direkte Spotify-Verbindung angeboten wird und du sie
@@ -103,16 +104,17 @@ export default function Datenschutz() {
       </p>
       <h2>Musikalische Empfehlungen mit KI</h2>
       <p>
-        Für die vertiefte Empfehlung verarbeitet Cloudflare Workers AI die
-        gewählten Künstler und Genres je Profil sowie eine Auswahl tatsächlicher
-        Konzert-Line-ups. Profil- und Gruppennamen, Kontaktangaben,
-        Browserkennungen und Suchort werden nicht in die Modellanfrage
-        aufgenommen. Die Verarbeitung dient eurer angefragten gemeinsamen
-        Konzertempfehlung (Art. 6 Abs. 1 lit. b DSGVO). Wir speichern
-        Bewertungen und Begründungen für eure Gruppe bis zu 24 Stunden zwischen;
-        beim Entfernen eines Profils oder Löschen der Gruppe werden sie
-        gelöscht. Cloudflare verwendet die Inhalte laut seinen Bedingungen nicht
-        zum Modelltraining ohne ausdrückliche Zustimmung. Mehr dazu:{" "}
+        Nur wenn ihr „Erweiterte KI-Suche“ einschaltet, verarbeitet Cloudflare
+        Workers AI die gewählten Künstler und Genres je Profil sowie eine
+        Auswahl tatsächlicher Konzert-Line-ups. Profil- und Gruppennamen,
+        Kontaktangaben, Browserkennungen und Suchort werden nicht in die
+        Modellanfrage aufgenommen. Die Verarbeitung dient eurer angefragten
+        gemeinsamen Konzertempfehlung (Art. 6 Abs. 1 lit. b DSGVO). Wir
+        speichern Bewertungen, Begründungen und die zugehörige Modellantwort für
+        eure Gruppe bis zu 24 Stunden zwischen; beim Entfernen eines Profils
+        oder Löschen der Gruppe werden sie gelöscht. Cloudflare verwendet die
+        Inhalte laut seinen Bedingungen nicht zum Modelltraining ohne
+        ausdrückliche Zustimmung. Mehr dazu:{" "}
         <a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/">
           Workers AI und eure Daten
         </a>
@@ -127,7 +129,7 @@ export default function Datenschutz() {
         geladen. Beim Öffnen eines Ticket- oder Spotify-Links verlässt du
         ConcertMatch; dann gelten die Bedingungen des jeweiligen Anbieters.{" "}
         <a
-          href="https://www.ticketmaster.de/help/privacy.html"
+          href="https://privacy.ticketmaster.de/de/privacy-policy"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -147,7 +149,7 @@ export default function Datenschutz() {
       </p>
       <p>
         Cloudflare kann Daten auch außerhalb der EU verarbeiten. Informationen
-        zu Datenschutz und Übermittlungsmechanismen findest du bei{" "}
+        zu Datenschutz findest du bei{" "}
         <a
           href="https://www.cloudflare.com/privacypolicy/"
           target="_blank"
@@ -155,9 +157,36 @@ export default function Datenschutz() {
         >
           Cloudflare
         </a>
-        . Wir setzen keine eigenen Analyse- oder Werbetracker ein.
+        . Cloudflares{" "}
+        <a href="https://www.cloudflare.com/cloudflare-customer-dpa/">
+          Auftragsverarbeitungsbedingungen
+        </a>{" "}
+        beschreiben unter anderem EU-Standardvertragsklauseln für internationale
+        Übermittlungen; Informationen zur{" "}
+        <a href="https://www.cloudflare.com/trust-hub/privacy-and-data-protection/">
+          Datenschutzorganisation und Zertifizierung
+        </a>{" "}
+        sind im Trust Hub verfügbar. Eine Kopie der für unseren Dienst geltenden
+        Garantien kannst du über die oben genannte Kontaktadresse anfordern. Wir
+        setzen keine eigenen Analyse- oder Werbetracker ein.
       </p>
       <h2>Speicherdauer</h2>
+      <p>
+        Vollständige Suchergebnisse und zugehörige KI-Bewertungen halten wir im
+        Sitzungsspeicher deines Browsers vor, damit die Rückkehr zur Suche ohne
+        erneuten Abruf möglich ist. Höchstens drei Suchen werden gespeichert;
+        Ergebnisse werden bis zu 15 Minuten wiederverwendet. Eine Änderung der
+        Künstlerauswahl oder Suchfilter erfordert eine neue Suche. Beim Löschen
+        deiner Daten wird auch dieser Zwischenspeicher entfernt.
+      </p>
+      <p>
+        Im Sitzungsspeicher dieses Browsers halten wir außerdem vorübergehend
+        Rücksprungziele, gegebenenfalls eine noch nicht bestätigte
+        Künstlerauswahl und Informationen für einen angeforderten Spotify-Import
+        oder Gruppenbeitritt vor. Diese Angaben dienen ausschließlich diesen
+        Funktionen und verschwinden mit dem Ende der Browsersitzung; übernommene
+        Rückkehr-Entwürfe werden vorher entfernt.
+      </p>
       <p>
         Eine Gruppe ist 90 Tage nach Erstellung nicht mehr zugänglich.
         Abgelaufene Gruppen und ihre Inhalte werden bei folgenden Dienstaufrufen
@@ -195,10 +224,10 @@ export default function Datenschutz() {
         </a>
         .
       </p>
-      <p>
-        <a href="/impressum">Impressum</a> ·{" "}
+      <nav className="legal-links" aria-label="Weitere Informationen">
+        <a href="/impressum">Impressum</a>
         <a href="/methode">Matching erklärt</a>
-      </p>
+      </nav>
     </main>
   );
 }

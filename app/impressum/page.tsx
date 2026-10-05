@@ -1,14 +1,12 @@
-import Link from "next/link";
+import LegalBack from "../legal-back";
 import type { Metadata } from "next";
-export const metadata: Metadata = { title: "Impressum · ConcertMatch" };
+export const metadata: Metadata = { title: "Impressum – ConcertMatch" };
 export default function Impressum() {
   return (
     <main className="legal-content">
-      <Link className="back-link" href="/">
-        ← Zur Konzertsuche
-      </Link>
+      <LegalBack />
       <h1>Impressum</h1>
-      <h2>Angaben zum Anbieter</h2>
+      <h2>Angaben gemäß § 5 DDG</h2>
       <address>
         TiCore
         <br />
@@ -42,14 +40,15 @@ export default function Impressum() {
         >
           Ticketmaster
         </a>
-        . Musikstil-Zuordnungen stammen aus dem Ticketmaster-Katalog und einer
-        eigenen redaktionellen Startauswahl. Spotify-Importe werden als solche
-        gekennzeichnet.
+        . Künstlerdaten und Musikstil-Zuordnungen: MusicBrainz / MetaBrainz,
+        ergänzend Apple iTunes, Ticketmaster und eine eigene Startauswahl.
+        Öffentliche Hörerzahlen: ListenBrainz. Optionale KI-Empfehlungen:
+        Cloudflare Workers AI. Spotify-Importe werden als solche gekennzeichnet.
       </p>
-      <p>
-        <a href="/datenschutz">Datenschutz</a> ·{" "}
+      <nav className="legal-links" aria-label="Weitere Informationen">
+        <a href="/datenschutz">Datenschutz</a>
         <a href="/methode">Matching erklärt</a>
-      </p>
+      </nav>
     </main>
   );
 }

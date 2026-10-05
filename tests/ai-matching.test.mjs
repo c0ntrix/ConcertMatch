@@ -128,7 +128,7 @@ test("successful diagnostics, usage refund and raw cache survive without another
     const live = await recommendConcerts(group, events);
     assert.equal(live.debug.status, "live");
     assert.equal(live.debug.output, valid);
-    assert.equal(live.debug.budget.used, 646);
+    assert.equal(live.debug.budget.used, 316);
     assert.equal(live.recommendations.concert.scores.member, 78);
     assert.ok(!live.debug.input.includes("Private name"));
     assert.ok(!live.debug.input.includes("Private city"));
@@ -145,6 +145,93 @@ test("successful diagnostics, usage refund and raw cache survive without another
     assert.equal(legacy.debug.status, "cache");
     assert.equal(legacy.debug.outputSource, "validated-cache");
     assert.equal(calls, 1);
+  } finally {
+    sql.close();
+  }
+});
+test("large catalogues constrain generation and accept a discovery near the end", async () => {
+  const catalogue = Array.from({ length: 300 }, (_, i) => ({
+    ...events[0],
+    id: "concert-" + i,
+    title: "Band " + i,
+    artists: [{ id: "band-" + i, name: "Band " + i, genres: ["Pop"] }],
+  }));
+  const sql = fixture({
+    async run(_model, request) {
+      const format =
+        request.response_format.json_schema.properties.recommendations;
+      assert.equal(format.maxItems, 16);
+      assert.equal(format.minItems, 16);
+      assert.equal(format.items.properties.scores.minItems, 1);
+      assert.equal(format.items.properties.scores.maxItems, 1);
+      assert.equal(format.items.properties.id.maximum, 299);
+      const input = JSON.parse(request.messages[1].content);
+      assert.equal(input.candidates.length, 300);
+      return {
+        response: JSON.stringify({
+          recommendations: Array.from({ length: 16 }, (_, i) => ({
+            id: 299 - i,
+            scores: [70],
+            confidence: "medium",
+            reason:
+              "Favorite und Band 299 teilen melodischen Pop, mit mehr Gitarren beim Live-Act.",
+          })),
+        }),
+        usage,
+      };
+    },
+  });
+  try {
+    const result = await recommendConcerts(group, catalogue);
+    assert.equal(result.mode, "ai");
+    assert.equal(result.recommendations["concert-299"].scores.member, 70);
+  } finally {
+    sql.close();
+  }
+});
+
+test("an incomplete large-catalogue assessment falls back without caching a one-result answer", async () => {
+  const catalogue = Array.from({ length: 30 }, (_, i) => ({
+    ...events[0],
+    id: "different-" + i,
+    artists: [{ id: "band-" + i, name: "Band " + i, genres: ["Pop"] }],
+  }));
+  const sql = fixture({
+    async run() {
+      return { response: valid, usage };
+    },
+  });
+  try {
+    const result = await recommendConcerts(group, catalogue);
+    assert.equal(result.mode, "genres");
+    assert.equal(result.debug.status, "invalid-output");
+    assert.equal(result.debug.assessedCount, 1);
+    assert.equal(sql.prepare("SELECT count(*) AS n FROM cache").get().n, 0);
+  } finally {
+    sql.close();
+  }
+});
+
+test("chat-completion envelopes validate and never expose internal reasoning", async () => {
+  const sql = fixture({
+    async run(model, input) {
+      assert.equal(model, "@cf/meta/llama-4-scout-17b-16e-instruct");
+      assert.equal(input.response_format.type, "json_schema");
+      return {
+        choices: [
+          {
+            message: { content: valid, reasoning_content: "Private reasoning" },
+          },
+        ],
+        usage,
+      };
+    },
+  });
+  try {
+    const result = await recommendConcerts(group, events);
+    assert.equal(result.mode, "ai");
+    assert.equal(result.recommendations.concert.scores.member, 78);
+    assert.ok(!JSON.stringify(result).includes("Private reasoning"));
   } finally {
     sql.close();
   }
@@ -170,9 +257,9 @@ test("invalid output is visible for debugging, refunds usage and preserves genre
     assert.equal(result.mode, "genres");
     assert.equal(result.debug.status, "invalid-output");
     assert.equal(result.debug.output, raw);
-    assert.equal(result.debug.budget.used, 646);
+    assert.equal(result.debug.budget.used, 316);
     assert.equal(result.recommendations, undefined);
-    assert.match(result.notice, /Erweiterte KI-Suche ist momentan deaktiviert/);
+    assert.match(result.notice, /KI ist gerade nicht verfügbar/);
     assert.equal(sql.prepare("SELECT count(*) AS n FROM cache").get().n, 0);
     assert.equal(
       sql
@@ -196,10 +283,10 @@ test("budget stoppage skips inference and reports the app budget only in diagnos
     const day = Math.floor(Date.now() / 86400000);
     sql
       .prepare("INSERT INTO rate_limits VALUES(?,?,?)")
-      .run("ai:day:" + day, 7000, (day + 1) * 86400);
+      .run("ai:day:" + day, 7800, (day + 1) * 86400);
     const result = await recommendConcerts(group, events);
     assert.equal(result.debug.status, "budget-exhausted");
-    assert.equal(result.debug.budget.used, 7000);
+    assert.equal(result.debug.budget.used, 7800);
     assert.equal(result.debug.output, undefined);
     assert.doesNotMatch(result.notice, /Kontingent|Tageslimit/);
     assert.equal(
@@ -223,7 +310,7 @@ test("provider failure and missing binding remain distinct without exposing prov
   try {
     const failed = await recommendConcerts(group, events);
     assert.equal(failed.debug.status, "provider-error");
-    assert.equal(failed.debug.budget.used, 1500);
+    assert.equal(failed.debug.budget.used, 1200);
     assert.ok(!JSON.stringify(failed).includes("Sensitive"));
     env.AI = undefined;
     assert.equal(

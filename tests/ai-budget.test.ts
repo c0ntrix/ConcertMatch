@@ -4,7 +4,7 @@ import { inferenceCharge, INFERENCE_RESERVATION } from "../lib/ai-budget";
 test("model token usage is charged at the published rate with headroom", () => {
   assert.equal(
     inferenceCharge({ prompt_tokens: 4000, completion_tokens: 2000 }),
-    646,
+    316,
   );
   assert.equal(inferenceCharge({ neurons: 100 }), 125);
 });

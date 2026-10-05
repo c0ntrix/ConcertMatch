@@ -30,6 +30,16 @@ export default function PrivacyControls() {
       if (!response.ok)
         throw new Error(d.error || "Bitte später erneut versuchen.");
       if (remove) {
+        for (const key of [
+          "cm_return_to_search",
+          "cm_return_draft",
+          "cm_join",
+          "cm_spotify_draft",
+          "cm_spotify_group",
+          "cm_search_results_v1",
+        ])
+          sessionStorage.removeItem(key);
+        window.dispatchEvent(new Event("cm-data-deleted"));
         setMessage(
           "Deine Profile und von dir erstellten Gruppen wurden gelöscht.",
         );

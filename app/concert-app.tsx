@@ -24,6 +24,8 @@ import {
 import { toast, Toaster } from "sonner";
 import ProfileEditor, { type ProfileDraft } from "./profile-editor";
 import AiDebug from "./ai-debug";
+import SearchMode from "./search-mode";
+import SearchLoading from "./search-loading";
 import { defaultPreferences } from "@/lib/catalog";
 import { SearchFields } from "./search-fields";
 import {
@@ -65,8 +67,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { calendarFile } from "@/lib/calendar";
+import { SearchResultCache, type SearchResults } from "@/lib/search-cache";
 type ProviderState = { ticketmaster: boolean; spotify: boolean };
 const emptyProfile = (name: string): ProfileDraft => ({
   name,
@@ -162,6 +164,7 @@ export default function ConcertApp() {
   const [searchEpoch, setSearchEpoch] = useState(0);
   const viewRevision = useRef(0);
   const searchRevision = useRef(0);
+  const resultCache = useRef(new SearchResultCache());
   const loadState = useCallback(async (id?: string) => {
     const revision = ++viewRevision.current;
     searchRevision.current++;
@@ -231,9 +234,39 @@ export default function ConcertApp() {
         setPrefs(restored.group.preferences);
         setEditingSelection(true);
       }
+      try {
+        const draft = JSON.parse(
+          sessionStorage.getItem("cm_return_draft") || "null",
+        ) as {
+          path?: string;
+          profiles?: ProfileDraft[];
+          prefs?: Preferences;
+          expires?: number;
+        } | null;
+        sessionStorage.removeItem("cm_return_draft");
+        if (
+          draft?.path === url.pathname + url.search &&
+          (draft.expires || 0) > Date.now() &&
+          !spotifyReturn &&
+          (!restored?.group || url.searchParams.get("edit") === "1") &&
+          Array.isArray(draft.profiles) &&
+          draft.profiles.length >= 1 &&
+          draft.profiles.length <= 8 &&
+          draft.prefs
+        ) {
+          setProfiles(draft.profiles);
+          setPrefs(draft.prefs);
+        }
+      } catch {
+        sessionStorage.removeItem("cm_return_draft");
+      }
       if (join && /^[a-f0-9]{64}$/.test(invitation)) {
         setJoining({ groupId: join, invite: invitation });
-        setProfiles([emptyProfile("Dein Name")]);
+        setProfiles([
+          emptyProfile(
+            "Person " + ((restored?.group?.members.length || 1) + 1),
+          ),
+        ]);
       }
       if (url.searchParams.get("spotify") === "success") {
         void api("/api/spotify/import")
@@ -281,11 +314,41 @@ export default function ConcertApp() {
       }
     });
   }, [loadState]);
-  const search = useCallback(async (g: Pick<Group, "id">) => {
+  const search = useCallback(async (g: Group, force = false) => {
     const request = ++searchRevision.current;
     const revision = viewRevision.current;
     const isCurrent = () =>
       request === searchRevision.current && revision === viewRevision.current;
+    let storage: Storage | undefined;
+    try {
+      storage = sessionStorage;
+    } catch {}
+    const publish = (result: SearchResults) => {
+      setEvents(result.events);
+      setArtistMetadata(result.artistMetadata);
+      setRecommendations(result.recommendations);
+      setRecommendationDebug(result.recommendationDebug);
+      setRecommendationNotice(result.recommendationNotice);
+      setNotice(result.notice);
+      setCheckedAt(result.checkedAt);
+    };
+    const restored = !force && resultCache.current.get(g, storage);
+    if (restored) {
+      publish({
+        ...restored,
+        recommendationDebug: restored.recommendationDebug
+          ? {
+              ...restored.recommendationDebug,
+              status: "results-cache",
+              durationMs: 0,
+            }
+          : undefined,
+      });
+      setSearching(false);
+      setRefining(false);
+      setError("");
+      return;
+    }
     setEvents([]);
     setArtistMetadata([]);
     setRecommendations(undefined);
@@ -301,33 +364,39 @@ export default function ConcertApp() {
     try {
       const d = await api("/api/concerts?group=" + g.id);
       if (!isCurrent()) return;
-      setEvents(d.events);
-      setArtistMetadata(d.artistMetadata || []);
-      setNotice(d.notice || "");
-      setCheckedAt(d.checkedAt || "");
-      setSearching(false);
-      if (d.events.length) {
+      const result: SearchResults = {
+        events: d.events,
+        artistMetadata: d.artistMetadata || [],
+        notice: d.notice || "",
+        checkedAt: d.checkedAt || "",
+        recommendationNotice: "",
+      };
+      if (g.preferences.aiSearch && d.events.length) {
         setRefining(true);
         try {
-          const refined = await api("/api/recommendations", { groupId: g.id });
+          const refined = await api("/api/recommendations", {
+            groupId: g.id,
+          });
           if (!isCurrent()) return;
-          setRecommendations(refined.recommendations);
-          setRecommendationDebug(refined.debug);
-          setRecommendationNotice(
+          result.recommendations = refined.recommendations;
+          result.recommendationDebug = refined.debug;
+          result.recommendationNotice =
             refined.notice ||
-              "KI-Abgleich abgeschlossen · Bewertungen und Reihenfolge wurden aktualisiert.",
-          );
+            "KI-Bewertungen ergänzen den Abgleich nach Favoriten und Musikstilen.";
         } catch {
           if (isCurrent()) {
-            setRecommendationDebug({ status: "request-error" });
-            setRecommendationNotice(
-              "Erweiterte KI-Suche ist momentan deaktiviert. Die Ergebnisse beruhen auf Favoriten und Genres.",
-            );
+            result.recommendationDebug = { status: "request-error" };
+            result.recommendationNotice =
+              "Die KI ist gerade nicht verfügbar. Deine Ergebnisse beruhen auf Favoriten und Musikstilen.";
           }
         } finally {
           if (isCurrent()) setRefining(false);
         }
       }
+      if (!isCurrent()) return;
+      // Publish the completed search once, after optional AI assessment.
+      resultCache.current.put(g, result, storage);
+      publish(result);
     } catch (e) {
       if (!isCurrent()) return;
       setError((e as Error).message);
@@ -348,9 +417,12 @@ export default function ConcertApp() {
   }, []);
   useEffect(() => {
     // Starting an external fetch updates its loading state; keys avoid fetching on unrelated group changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (groupId && !editingSelection) void search({ id: groupId });
+    if (groupId && group && !editingSelection)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void search(group);
     return invalidateSearch;
+    // Group names, bookmarks and votes do not invalidate the search identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     groupId,
     prefsKey,
@@ -359,6 +431,7 @@ export default function ConcertApp() {
     search,
     invalidateSearch,
     editingSelection,
+    group?.preferences.aiSearch,
   ]);
   useEffect(() => {
     if (!groupId) return;
@@ -390,6 +463,13 @@ export default function ConcertApp() {
     try {
       const d = await api("/api/groups/" + group.id, input);
       if (revision !== viewRevision.current) return;
+      if (d.deleted || d.left) {
+        try {
+          resultCache.current.remove(group.id, sessionStorage);
+        } catch {
+          resultCache.current.remove(group.id);
+        }
+      }
       if (d.group) setGroup(d.group);
       return d;
     } catch (e) {
@@ -400,13 +480,14 @@ export default function ConcertApp() {
     }
   }
   async function start(inviteOnly = false) {
-    const selected = inviteOnly ? [profiles[0]] : profiles;
-    if (selected.some((p) => !p.name.trim() || !p.artists.length)) {
+    const selected = (inviteOnly ? [profiles[0]] : profiles).map((p, i) => ({
+      ...p,
+      name: p.name.trim() || (i === 0 ? "Du" : "Person " + (i + 1)),
+    }));
+    if (selected.some((p) => !p.artists.length)) {
       setError(
         selected.length === 1
-          ? !selected[0].name.trim()
-            ? "Gib einen Namen für dein Profil an."
-            : "Wähle mindestens einen Lieblingskünstler aus."
+          ? "Wähle mindestens einen Lieblingskünstler aus."
           : "Wählt für jede Person mindestens einen Lieblingskünstler aus.",
       );
       return;
@@ -441,7 +522,7 @@ export default function ConcertApp() {
       } else {
         d = await api("/api/groups", {
           name: (selected.length === 1
-            ? "Meine Konzerte · " + prefs.city
+            ? "Meine Konzerte in " + prefs.city
             : selected.map((p) => p.name).join(" & ")
           ).slice(0, 60),
           profiles: selected,
@@ -468,9 +549,14 @@ export default function ConcertApp() {
     }
   }
   async function saveProfile() {
-    const p = profiles[0];
-    if (!p.name.trim() || !p.artists.length) {
-      toast.error("Ein Name und mindestens ein Künstler fehlen noch.");
+    const p = {
+      ...profiles[0],
+      name:
+        profiles[0].name.trim() ||
+        (editingMember ? "Du" : "Person " + ((group?.members.length || 0) + 1)),
+    };
+    if (!p.artists.length) {
+      toast.error("Wähle mindestens einen Lieblingskünstler aus.");
       return;
     }
     const d = await action(
@@ -576,6 +662,7 @@ export default function ConcertApp() {
     setEditingSelection(false);
     setJoining(null);
     sessionStorage.removeItem("cm_join");
+    sessionStorage.removeItem("cm_return_draft");
     viewRevision.current++;
     searchRevision.current++;
     setEvents([]);
@@ -597,6 +684,40 @@ export default function ConcertApp() {
     setEdit(false);
     history.replaceState(null, "", "/");
   }
+  useEffect(() => {
+    sessionStorage.setItem(
+      "cm_return_to_search",
+      groupId
+        ? "/?group=" + groupId + (editingSelection ? "&edit=1" : "")
+        : "/",
+    );
+  }, [groupId, editingSelection]);
+  useEffect(() => {
+    function rememberDraft(event: MouseEvent) {
+      const anchor =
+        event.target instanceof Element ? event.target.closest("a") : null;
+      if (
+        anchor &&
+        ["/datenschutz", "/impressum", "/methode"].includes(
+          new URL(anchor.href).pathname,
+        ) &&
+        (!groupId || editingSelection) &&
+        !joining
+      ) {
+        sessionStorage.setItem(
+          "cm_return_draft",
+          JSON.stringify({
+            path: location.pathname + location.search,
+            profiles,
+            prefs,
+            expires: Date.now() + 30 * 60000,
+          }),
+        );
+      }
+    }
+    document.addEventListener("click", rememberDraft, true);
+    return () => document.removeEventListener("click", rememberDraft, true);
+  }, [groupId, editingSelection, joining, profiles, prefs]);
   useEffect(() => {
     const context = (
       document as Document & {
@@ -674,15 +795,23 @@ export default function ConcertApp() {
               >
                 <SelectValue placeholder="Meine Suchen">
                   {group
-                    ? groups.find((g) => g.id === group.id)?.name ||
-                      "Meine Suchen"
+                    ? (
+                        groups.find((g) => g.id === group.id)?.name ||
+                        "Meine Suchen"
+                      ).replace(
+                        /^Meine Konzerte\s+\u00b7\s+/,
+                        "Meine Konzerte in ",
+                      )
                     : "Meine Suchen"}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.name}
+                    {g.name.replace(
+                      /^Meine Konzerte\s+\u00b7\s+/,
+                      "Meine Konzerte in ",
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -704,7 +833,11 @@ export default function ConcertApp() {
           <>
             {editingSelection && (
               <p className="back-link selection-back">
-                <button onClick={returnToResults} disabled={busy}>
+                <button
+                  className="navigation-button"
+                  onClick={returnToResults}
+                  disabled={busy}
+                >
                   <ArrowLeft size={15} aria-hidden="true" />
                   {solo
                     ? "Zurück zu deinen Konzerten"
@@ -716,20 +849,20 @@ export default function ConcertApp() {
               <section className="intro">
                 <h1>
                   {joining ? (
-                    "Schön, dass du mitkommst."
+                    "Der Gruppe beitreten"
                   ) : (
                     <>
-                      {soloDraft ? "Dein nächstes" : "Euer nächstes"}
-                      <br /> Konzert.
+                      {soloDraft ? "Konzerte" : "Gemeinsam Konzerte"}
+                      <br /> finden.
                     </>
                   )}
                 </h1>
                 <p>
                   {joining
-                    ? "Ergänze deinen Musikgeschmack für eure gemeinsame Auswahl."
+                    ? "Füge deine Lieblingskünstler zur gemeinsamen Suche hinzu."
                     : soloDraft
-                      ? "Finde Live-Musik, die zu dir passt. Allein oder mit Freunden."
-                      : "Findet Live-Musik, die euch verbindet."}
+                      ? "Wähle Lieblingskünstler, Suchort und Zeitraum."
+                      : "Wählt eure Lieblingskünstler, einen Suchort und Zeitraum."}
                 </p>
                 <div className="hero-photo" aria-hidden="true">
                   {/* The original concert photograph keeps the visual rooted in real live music. */}
@@ -791,6 +924,11 @@ export default function ConcertApp() {
                     <ProfileEditor
                       key={i}
                       index={i}
+                      showName={
+                        !soloDraft ||
+                        !!joining ||
+                        (!!group && group.members.length > 1)
+                      }
                       value={p}
                       onChange={(v) =>
                         setProfiles((ps) => ps.map((x, j) => (j === i ? v : x)))
@@ -845,6 +983,10 @@ export default function ConcertApp() {
                       <h2>Wo & wann?</h2>
                     </div>
                     <SearchFields value={prefs} onChange={setPrefs} />
+                    <SearchMode
+                      enabled={!!prefs.aiSearch}
+                      onChange={(aiSearch) => setPrefs({ ...prefs, aiSearch })}
+                    />
                   </>
                 )}
                 {error && (
@@ -903,17 +1045,25 @@ export default function ConcertApp() {
           <>
             <section className="result-intro">
               <div>
-                <p className="back-link">
-                  <button onClick={() => beginSelection()}>
-                    Auswahl bearbeiten
+                <p className="back-link result-navigation">
+                  <button
+                    className="navigation-button"
+                    onClick={() => beginSelection()}
+                  >
+                    <ArrowLeft size={18} aria-hidden="true" /> Auswahl
+                    bearbeiten
                   </button>
-                  <span aria-hidden="true"> · </span>
-                  <button onClick={reset}>Neue Suche</button>
+                  <button className="navigation-button" onClick={reset}>
+                    <Plus size={18} aria-hidden="true" /> Neue Suche
+                  </button>
                 </p>
-                <h1>{solo ? "Deine Konzerte." : "Eure Konzerte."}</h1>
-                <p>
-                  {group.members.map((m) => m.name).join(", ")} ·{" "}
-                  {group.preferences.city} + {group.preferences.radius} km
+                <h1>{solo ? "Suchergebnisse" : "Gemeinsame Suchergebnisse"}</h1>
+                <p className="result-summary">
+                  <span>{group.members.map((m) => m.name).join(", ")}</span>
+                  <span>
+                    {group.preferences.city} im Umkreis von{" "}
+                    {group.preferences.radius} km
+                  </span>
                 </p>
               </div>
               {group.owner && (
@@ -993,6 +1143,10 @@ export default function ConcertApp() {
                 }}
               >
                 <SearchFields value={prefs} onChange={setPrefs} />
+                <SearchMode
+                  enabled={!!prefs.aiSearch}
+                  onChange={(aiSearch) => setPrefs({ ...prefs, aiSearch })}
+                />
                 <label className="checkbox-label">
                   <Checkbox
                     checked={prefs.discovery}
@@ -1015,18 +1169,11 @@ export default function ConcertApp() {
             </p>
             <div aria-busy={searching && tab !== "saved"}>
               {searching && tab !== "saved" ? (
-                <div className="loading-results">
-                  <p className="search-progress">
-                    <SoundMark active /> Passende Konzerte werden gesucht …
-                  </p>
-                  {[1, 2, 3].map((n) => (
-                    <Skeleton key={n} className="result-skeleton" />
-                  ))}
-                </div>
+                <SearchLoading refining={refining} />
               ) : error && tab !== "saved" ? (
                 <div className="message error">
                   {error}
-                  <button onClick={() => void search(group)}>
+                  <button onClick={() => void search(group, true)}>
                     <RefreshCw size={14} /> Erneut versuchen
                   </button>
                 </div>
@@ -1039,8 +1186,8 @@ export default function ConcertApp() {
                         {shown.length === 1 ? "Konzert" : "Konzerte"}
                         {tab !== "saved" &&
                           (solo
-                            ? " · nach deinem Musikgeschmack"
-                            : " · nach gemeinsamem Musikgeschmack")}
+                            ? " nach deinem Musikgeschmack"
+                            : " nach gemeinsamem Musikgeschmack")}
                       </div>
                       <div className="concert-list">
                         {shown.slice(0, visible).map((m) => (
@@ -1062,22 +1209,12 @@ export default function ConcertApp() {
                         </button>
                       )}
                     </>
-                  ) : refining && tab !== "saved" ? (
-                    <div className="loading-results">
-                      <p className="search-progress">
-                        <SoundMark active />
-                        {solo
-                          ? "Wir prüfen noch, welche Acts zu dir passen …"
-                          : "Wir prüfen noch, welche Acts zu euch allen passen …"}
-                      </p>
-                      <Skeleton className="result-skeleton" />
-                    </div>
                   ) : (
                     <div className="empty-results">
                       <h2>
                         {tab === "saved"
-                          ? "Was kommt in die engere Auswahl?"
-                          : "Hier ist es gerade still."}
+                          ? "Noch keine Konzerte gemerkt"
+                          : "Keine passenden Konzerte gefunden"}
                       </h2>
                       <p>
                         {tab === "saved"
@@ -1106,11 +1243,7 @@ export default function ConcertApp() {
             </div>
             <div className="results-footnote">
               {tab !== "saved" && (
-                <p role="status">
-                  {refining
-                    ? "Erste Ergebnisse nach Favoriten und Genres. Die KI prüft noch; Bewertungen und Reihenfolge können sich ändern …"
-                    : recommendationNotice}
-                </p>
+                <p role="status">{!searching && recommendationNotice}</p>
               )}
               {notice && <p>{notice}</p>}
               <p>
@@ -1119,9 +1252,9 @@ export default function ConcertApp() {
               </p>
               {checkedAt && (
                 <p>
-                  Konzertdaten: {new Date(checkedAt).toLocaleString("de-DE")} ·
-                  Ticketmaster. Preise und Verfügbarkeit bitte beim Anbieter
-                  prüfen.
+                  Konzertdaten von Ticketmaster, Stand{" "}
+                  {new Date(checkedAt).toLocaleString("de-DE")}. Preise und
+                  Verfügbarkeit bitte beim Anbieter prüfen.
                 </p>
               )}
               {tab !== "saved" && (
@@ -1157,6 +1290,7 @@ export default function ConcertApp() {
           </DialogDescription>
           <ProfileEditor
             value={profiles[0] || emptyProfile("Du")}
+            showName={!editingMember || (!!group && group.members.length > 1)}
             onChange={(v) => setProfiles([v])}
             spotify={providers.spotify}
           />
@@ -1310,13 +1444,13 @@ function ConcertRow({
       </div>
       <div className="concert-body">
         <div className="concert-meta">
-          {dateLabel}
-          {c.time ? " · " + c.time.slice(0, 5) + " Uhr" : ""}
-          {c.status === "postponed"
-            ? " · Verschoben"
-            : c.status === "rescheduled"
-              ? " · Neuer Termin"
-              : ""}
+          <span>{dateLabel}</span>
+          {c.time && <span>{c.time.slice(0, 5)} Uhr</span>}
+          {(c.status === "postponed" || c.status === "rescheduled") && (
+            <span className="concert-status">
+              {c.status === "postponed" ? "Verschoben" : "Neuer Termin"}
+            </span>
+          )}
         </div>
         <h2>{c.title}</h2>
         <p className="venue">
@@ -1327,7 +1461,7 @@ function ConcertRow({
           <span
             title={"Luftlinie ab dem Zentrum von " + group.preferences.city}
           >
-            · {distanceLabel(m, group.preferences)}
+            {distanceLabel(m, group.preferences)}
           </span>
         </p>
         <div className="concert-bottom">
@@ -1338,11 +1472,11 @@ function ConcertRow({
             aria-controls={detailId}
           >
             {m.score} Matchpunkte
-            {m.discovery
-              ? group.members.length === 1
-                ? " · Neu für dich"
-                : " · Neu für euch"
-              : ""}
+            {m.discovery && (
+              <span className="discovery-label">
+                {group.members.length === 1 ? "Neu für dich" : "Neu für euch"}
+              </span>
+            )}
             <ChevronDown size={14} aria-hidden="true" />
           </button>
           <div className="concert-ticket">
@@ -1402,7 +1536,7 @@ function ConcertRow({
                     }}
                   >
                     <span>
-                      {date.concert.city} ·{" "}
+                      {date.concert.city},{" "}
                       {new Date(
                         date.concert.date + "T12:00:00Z",
                       ).toLocaleDateString("de-DE", {
@@ -1412,14 +1546,16 @@ function ConcertRow({
                         timeZone: "UTC",
                       })}
                       {date.concert.time
-                        ? " · " + date.concert.time.slice(0, 5)
+                        ? " um " + date.concert.time.slice(0, 5) + " Uhr"
                         : ""}
                     </span>
                     <small>
-                      {date.concert.venue} ·{" "}
+                      {date.concert.venue},{" "}
                       {distanceLabel(date, group.preferences)}
-                      {date.concert.id === c.id ? " · Ausgewählt" : ""}
                     </small>
+                    {date.concert.id === c.id && (
+                      <span className="selected-date-label">Ausgewählt</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -1445,7 +1581,7 @@ function ConcertRow({
             <div className="person-score" key={p.id}>
               <span>{p.name}</span>
               <b>{p.score}/100</b>
-              <p>{p.reason}</p>
+              <p>{p.reason.replace(/\s+\u00b7\s+/g, ", ")}</p>
             </div>
           ))}
           <p className="small-note">

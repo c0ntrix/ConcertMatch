@@ -3,7 +3,9 @@ import "./ai-debug.css";
 
 const statuses: Record<RecommendationDebug["status"], string> = {
   live: "Modellantwort empfangen und geprüft",
-  cache: "Gespeicherte Bewertung verwendet · kein neuer Modellaufruf",
+  cache: "Gespeicherte Bewertung verwendet. Kein neuer Modellaufruf.",
+  "results-cache":
+    "Gespeicherte Suchergebnisse angezeigt. Kein neuer Modellaufruf.",
   "no-candidates": "Keine geeigneten Kandidaten für den KI-Abgleich",
   "missing-binding": "KI-Anbindung fehlt in dieser Umgebung",
   "in-progress": "Für diese Suche läuft bereits ein Modellaufruf",
@@ -63,10 +65,10 @@ export default function AiDebug({
             )}
             {debug.budget && (
               <>
-                <dt>App-Tageslimit · Stand bei dieser Anfrage</dt>
+                <dt>App-Tageslimit bei dieser Anfrage</dt>
                 <dd>
-                  {debug.budget.used} / {debug.budget.limit} Einheiten · neue
-                  Anfrage reserviert {debug.budget.reservation}
+                  {debug.budget.used} / {debug.budget.limit} Einheiten. Eine
+                  neue Anfrage reserviert {debug.budget.reservation}.
                 </dd>
                 <dt>Erneuerung</dt>
                 <dd>
@@ -88,7 +90,7 @@ export default function AiDebug({
           {debug.error && <p>Fehlerdetails: {debug.error}</p>}
           <h3>
             {debug.outputSource === "validated-cache"
-              ? "Geprüfte Ausgabe aus älterem Cache · ursprüngliche Rohantwort nicht gespeichert"
+              ? "Geprüfte Ausgabe aus älterem Cache (ohne ursprüngliche Rohantwort)"
               : "LLM-Ausgabe"}
           </h3>
           {debug.output !== undefined ? (

@@ -259,6 +259,7 @@ export const preferencesSchema = z
       .max(500)
       .transform(() => 0),
     discovery: z.boolean(),
+    aiSearch: z.boolean().default(false),
   })
   .refine(
     (x) =>

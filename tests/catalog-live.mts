@@ -23,7 +23,7 @@ async function api(path: string, body?: unknown) {
   });
   if (response.headers.get("set-cookie"))
     cookie = response.headers.get("set-cookie")!.split(";")[0];
-  const data = (await response.json()) as Record<string, any>;
+  const data = (await response.json()) as Record<string, unknown>;
   assert.equal(response.status, 200, JSON.stringify(data));
   return data;
 }
@@ -66,7 +66,7 @@ try {
     JSON.stringify(
       {
         elapsedMs: Date.now() - start,
-        events: data.events.length,
+        events: (data.events as Concert[]).length,
         matches: ranked.length,
         enriched: (data.events as Concert[]).filter((e) =>
           e.artists.some((a) => a.mbid),

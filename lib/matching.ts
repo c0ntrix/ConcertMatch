@@ -243,7 +243,7 @@ export function matchConcert(
   const scores = members.map((m) => ({
     id: m.id,
     name: m.name,
-    ...(affinity(m, concert).score === 100 || !recommendations
+    ...(affinity(m, concert).score === 100 || !assessment
       ? affinity(m, concert)
       : {
           score: assessment?.scores[m.id] ?? 0,

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
-import { ARTISTS, STARTER_ARTISTS, GENRES, normalize } from "@/lib/catalog";
+import { ARTISTS, POPULAR_ARTISTS, normalize } from "@/lib/catalog";
 import type { Artist } from "@/lib/types";
 import {
   Combobox,
@@ -12,7 +12,6 @@ import {
   ComboboxEmpty,
 } from "@/components/ui/combobox";
 import HistoryImport from "./history-import";
-import { Checkbox } from "@/components/ui/checkbox";
 import { sameArtist } from "@/lib/matching";
 import ArtistListImport from "./artist-list-import";
 export type ProfileDraft = {
@@ -26,12 +25,14 @@ export default function ProfileEditor({
   index = 0,
   onRemove,
   spotify = false,
+  showName = false,
 }: {
   value: ProfileDraft;
   onChange: (v: ProfileDraft) => void;
   index?: number;
   onRemove?: () => void;
   spotify?: boolean;
+  showName?: boolean;
 }) {
   const id = useId();
   const nameId = id + "-name";
@@ -96,7 +97,9 @@ export default function ProfileEditor({
       ac.abort();
     };
   }, [query, retry]);
-  const local = (query ? ARTISTS : STARTER_ARTISTS).filter(
+  const local = (
+    query ? [...ARTISTS, ...POPULAR_ARTISTS] : POPULAR_ARTISTS
+  ).filter(
     (a) =>
       normalize(a.name).includes(normalize(query)) &&
       !remote.some((b) => normalize(a.name) === normalize(b.name)),
@@ -104,10 +107,10 @@ export default function ProfileEditor({
   const options = [...remote, ...local]
     .filter(
       (a, i, arr) =>
-        arr.findIndex((b) => a.id === b.id) === i &&
+        arr.findIndex((b) => normalize(a.name) === normalize(b.name)) === i &&
         !value.artists.some((b) => sameArtist(a, b)),
     )
-    .slice(0, query ? 20 : 6);
+    .slice(0, query ? 20 : 18);
   function add(a: Artist, keepSearching = true) {
     if (
       value.artists.length >= 50 ||
@@ -122,32 +125,39 @@ export default function ProfileEditor({
   }
   return (
     <div className="profile-editor">
-      <div className="profile-name">
-        <span className={"person-dot person-" + (index % 4)} aria-hidden="true">
-          {index + 1}
-        </span>
-        <div className="profile-name-field">
-          <label htmlFor={nameId}>Name</label>
-          <input
-            id={nameId}
-            aria-label={"Name von Person " + (index + 1)}
-            value={value.name}
-            maxLength={40}
-            onChange={(e) => onChange({ ...value, name: e.target.value })}
-            placeholder={"Person " + (index + 1)}
-          />
-        </div>
-        {onRemove && (
-          <button
-            type="button"
-            className="icon-button"
-            aria-label={value.name + " entfernen"}
-            onClick={onRemove}
+      {showName && (
+        <div className="profile-name">
+          <span
+            className={"person-dot person-" + (index % 4)}
+            aria-hidden="true"
           >
-            <X size={17} aria-hidden="true" />
-          </button>
-        )}
-      </div>
+            {index + 1}
+          </span>
+          <div className="profile-name-field">
+            <label htmlFor={nameId}>
+              Rufname <span className="field-optional">optional</span>
+            </label>
+            <input
+              id={nameId}
+              aria-label={"Name von Person " + (index + 1)}
+              value={value.name}
+              maxLength={40}
+              onChange={(e) => onChange({ ...value, name: e.target.value })}
+              placeholder={"Person " + (index + 1)}
+            />
+          </div>
+          {onRemove && (
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={value.name + " entfernen"}
+              onClick={onRemove}
+            >
+              <X size={17} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
       <div className="artist-field">
         <div className="artist-field-heading">
           <label htmlFor={artistId}>Lieblingskünstler</label>
@@ -233,14 +243,16 @@ export default function ProfileEditor({
                 >
                   <span>
                     <strong>{artist.name}</strong>
-                    <small>
-                      {[
-                        artist.description,
-                        artist.genres.slice(0, 2).join(" · "),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "Künstler / Band"}
-                    </small>
+                    {artist.description && (
+                      <small>
+                        {artist.description.replace(/\s+\u00b7\s+/g, ", ")}
+                      </small>
+                    )}
+                    {artist.genres.length > 0 && (
+                      <small className="artist-result-styles">
+                        {artist.genres.slice(0, 2).join(", ")}
+                      </small>
+                    )}
                   </span>
                   <Plus size={15} aria-hidden="true" />
                 </ComboboxItem>
@@ -307,43 +319,13 @@ export default function ProfileEditor({
           )}
         {!value.artists.length && !query && (
           <div className="artist-suggestions">
-            <span>Zum Beispiel</span>
-            {STARTER_ARTISTS.slice(
-              index % 2 === 0 ? 0 : 3,
-              index % 2 === 0 ? 3 : 6,
-            ).map((a) => (
+            <span>Beliebte Künstler</span>
+            {POPULAR_ARTISTS.slice(0, 4).map((a) => (
               <button type="button" key={a.id} onClick={() => add(a, false)}>
                 {a.name}
               </button>
             ))}
           </div>
-        )}
-        {value.artists.some((a) => !a.genres.length) && (
-          <details className="genre-details">
-            <summary>Musikrichtungen ergänzen</summary>
-            <p>
-              Für Künstler ohne Genre-Daten helfen diese Angaben bei
-              Entdeckungen.
-            </p>
-            <div className="genre-choices">
-              {GENRES.map((g) => (
-                <label key={g}>
-                  <Checkbox
-                    checked={value.genres.includes(g)}
-                    onCheckedChange={(v) =>
-                      onChange({
-                        ...value,
-                        genres: v
-                          ? [...value.genres, g]
-                          : value.genres.filter((x) => x !== g),
-                      })
-                    }
-                  />
-                  {g}
-                </label>
-              ))}
-            </div>
-          </details>
         )}
         <details className="profile-imports">
           <summary>Liste oder Spotify-Verlauf importieren</summary>
@@ -362,17 +344,16 @@ export default function ProfileEditor({
               }
             />
             <HistoryImport
-              onImport={(artists) =>
+              onImport={(artists) => {
+                const fresh = artists
+                  .filter((a) => !value.artists.some((b) => sameArtist(a, b)))
+                  .slice(0, Math.max(0, 50 - value.artists.length));
                 onChange({
                   ...value,
-                  artists: [
-                    ...value.artists,
-                    ...artists.filter(
-                      (a) => !value.artists.some((b) => sameArtist(a, b)),
-                    ),
-                  ].slice(0, 50),
-                })
-              }
+                  artists: [...value.artists, ...fresh],
+                });
+                return fresh.length;
+              }}
             />
             {spotify && (
               <a
