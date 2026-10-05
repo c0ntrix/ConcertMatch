@@ -50,12 +50,24 @@ export type EventPage = {
 const genres = (cs: Classification[] = []) => [
   ...new Set(
     cs
-      .flatMap((c) => [c.genre?.name, c.subGenre?.name])
+      .flatMap((c) => [c?.genre?.name, c?.subGenre?.name])
       .filter(
-        (x): x is string => !!x && !/undefined|other|miscellaneous/i.test(x),
+        (x): x is string =>
+          typeof x === "string" &&
+          !!x.trim() &&
+          !/undefined|other|miscellaneous/i.test(x),
       ),
   ),
 ];
+export function validAttraction(a: Attraction) {
+  return (
+    a &&
+    typeof a.id === "string" &&
+    !!a.id.trim() &&
+    typeof a.name === "string" &&
+    !!a.name.trim()
+  );
+}
 export function ticketmasterArtist(a: Attraction): Artist {
   return {
     id: "tm:" + a.id,
@@ -93,9 +105,13 @@ export function parseEvent(
   // Discovery status is not live inventory. Reject only explicit unavailable
   // states or an ended sale; never invent an onsale status for missing data.
   if (
-    !e.id ||
-    !e.name ||
+    typeof e.id !== "string" ||
+    !e.id.trim() ||
+    typeof e.name !== "string" ||
+    !e.name.trim() ||
     !v ||
+    typeof v.name !== "string" ||
+    !v.name.trim() ||
     !start?.localDate ||
     start.dateTBD ||
     start.dateTBA ||
@@ -122,7 +138,7 @@ export function parseEvent(
     return null;
   }
   const images = (e.images || [])
-    .filter((i) => i.url.startsWith("https://s1.ticketm.net/"))
+    .filter((i) => i?.url?.startsWith("https://s1.ticketm.net/"))
     .sort((a, b) => Math.abs(a.width - 500) - Math.abs(b.width - 500));
   const price = e.priceRanges
     ?.filter(
@@ -143,7 +159,9 @@ export function parseEvent(
   return {
     id: e.id,
     title: e.name,
-    artists: (e._embedded?.attractions || []).map(ticketmasterArtist),
+    artists: (e._embedded?.attractions || [])
+      .filter(validAttraction)
+      .map(ticketmasterArtist),
     date: start.localDate,
     time: start.timeTBA || start.noSpecificTime ? undefined : start.localTime,
     venue: v.name,

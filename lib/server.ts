@@ -85,6 +85,23 @@ export async function api(
       console.error(
         "ConcertMatch request failed",
         error instanceof Error ? error.name : "unknown",
+        error instanceof Error
+          ? {
+              category: /too many|limit.*request/i.test(error.message)
+                ? "request-limit"
+                : /too.*large|SQLITE_TOOBIG/i.test(error.message)
+                  ? "storage-limit"
+                  : "unexpected",
+              frames: (error.stack || "")
+                .split("\n")
+                .slice(1, 6)
+                .map(
+                  (line) =>
+                    line.match(/at (?:async )?([A-Za-z0-9_.$]+)/)?.[1] ||
+                    "unknown",
+                ),
+            }
+          : {},
       );
     const status =
       error instanceof ApiError

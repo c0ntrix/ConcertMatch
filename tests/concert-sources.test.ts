@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { expandedEventPages } from "../lib/concert-coverage";
 import { musicRubrics, parseEventfrogEvent } from "../lib/eventfrog-events";
 import { deduplicateConcerts } from "../lib/matching";
-import type { TicketmasterEvent } from "../lib/ticketmaster-events";
+import { parseEvent, type TicketmasterEvent } from "../lib/ticketmaster-events";
 const checkedAt = "2026-10-05T12:00:00Z";
 const venue = {
   id: "42",
@@ -124,6 +124,19 @@ const tmEvent = (id: string): TicketmasterEvent => ({
       },
     ],
   },
+});
+test("a malformed attraction in a larger provider catalogue cannot crash the entire search", () => {
+  const raw = tmEvent("larger-catalogue");
+  raw._embedded!.attractions = [
+    { id: "missing-name" },
+    { id: "band", name: "Band" },
+  ] as TicketmasterEvent["_embedded"] extends { attractions?: infer A }
+    ? A
+    : never;
+  const event = parseEvent(raw, checkedAt)!;
+  assert.equal(event.artists.length, 1);
+  assert.equal(event.artists[0].name, "Band");
+  assert.equal(deduplicateConcerts([event]).length, 1);
 });
 test("small catalogues keep the cheap page path without extra date searches", async () => {
   const calls: unknown[] = [];

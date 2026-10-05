@@ -17,6 +17,7 @@ import {
   eventPages,
   parseEvent,
   ticketmasterArtist,
+  validAttraction,
   type Attraction,
   type EventPage,
   type TicketmasterEvent,
@@ -120,7 +121,9 @@ export async function searchArtists(query: string) {
     "attractions.json",
     { keyword: query, classificationName: "music", size: "12", locale: "*" },
   );
-  const artists = (data._embedded?.attractions || []).map(ticketmasterArtist);
+  const artists = (data._embedded?.attractions || [])
+    .filter(validAttraction)
+    .map(ticketmasterArtist);
   await putCache(key, artists, 24 * 3600000);
   return artists;
 }
@@ -147,7 +150,7 @@ async function nearbyConcerts(
     sort: "relevance,desc",
     locale: "*",
   };
-  const cacheKey = "events:v4:" + JSON.stringify(query);
+  const cacheKey = "events:v5:" + JSON.stringify(query);
   const hit = await cached<{
     events: Concert[];
     notice: string;
