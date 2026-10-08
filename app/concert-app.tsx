@@ -1184,7 +1184,9 @@ export default function ConcertApp() {
                   {shown.length > 0 ? (
                     <>
                       <div className="result-count">
-                        {shown.length}{" "}
+                        {shown.length > visible
+                          ? `${Math.min(visible, shown.length)} von ${shown.length}`
+                          : shown.length}{" "}
                         {shown.length === 1 ? "Konzert" : "Konzerte"}
                         {tab !== "saved" &&
                           (solo
@@ -1207,7 +1209,9 @@ export default function ConcertApp() {
                           className="secondary load-more"
                           onClick={() => setVisible((v) => v + 15)}
                         >
-                          Weitere Konzerte anzeigen
+                          {shown.length - visible === 1
+                            ? "1 weiteres Konzert anzeigen"
+                            : `${Math.min(15, shown.length - visible)} weitere Konzerte anzeigen`}
                         </button>
                       )}
                     </>
