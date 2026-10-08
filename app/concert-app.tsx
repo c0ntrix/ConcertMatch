@@ -1535,7 +1535,9 @@ function ConcertRow({
                 id={datesId}
                 className="tour-date-options"
                 role="group"
-                aria-label={"Termin für " + c.artists[0]?.name + " auswählen"}
+                aria-label={
+                  "Termin für " + (c.artists[0]?.name || c.title) + " auswählen"
+                }
               >
                 {result.alternatives.map((date) => (
                   <button
@@ -1580,6 +1582,9 @@ function ConcertRow({
           saved ? c.title + " von der Merkliste entfernen" : c.title + " merken"
         }
         aria-pressed={saved}
+        title={
+          saved ? "Von der Merkliste entfernen" : "Konzert auf die Merkliste setzen"
+        }
         onClick={() => void onAction({ action: "save", eventId: c.id })}
         disabled={busy}
       >
