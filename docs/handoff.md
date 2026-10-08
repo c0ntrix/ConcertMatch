@@ -1,5 +1,7 @@
 # Release handoff
 
+Latest UI deployment (2026-10-08): commits `7b98168`, `d40aaa0` and `8c3a25e` are live. Results show displayed/total counts and the number of concerts loaded next; bookmark actions have tooltips; date choices fall back to the concert title when artist names are missing; artwork uses asynchronous decoding. TypeScript, lint, production build and deployment dry run passed. Production version: `d6f0f86f-2061-4ba4-b815-d1c049250203`. Live page and updated concert module returned HTTP 200, and new labels were verified in the delivered module.
+
 Reservix DE is approved and integrated via Awin (5 October 2026). Read [Reservix deployment and refresh](reservix.md) before changing ticket links or ingestion. The daily workflow uses encrypted GitHub secrets; the Worker imports only public provider data into bounded, expiring catalogue generations. Affiliate links use an asterisk with an adjacent explanation. Match ranking remains musical; Reservix purchase options are displayed first. The original release notes below are historical and do not supersede this integration.
 
 Live: https://concertmatch.ticore.workers.dev/
