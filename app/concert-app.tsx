@@ -1443,6 +1443,7 @@ function ConcertRow({
             src={"/api/image?url=" + encodeURIComponent(c.image)}
             alt=""
             loading="lazy"
+            decoding="async"
             onError={() => {
               setImageFailed(true);
             }}
