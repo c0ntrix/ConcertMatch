@@ -194,6 +194,10 @@ export default function ProfileEditor({
             ref={input}
             id={artistId}
             className="artist-search-input"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             maxLength={100}
             disabled={value.artists.length >= 50}
             aria-describedby={artistHintId}

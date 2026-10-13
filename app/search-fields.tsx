@@ -104,6 +104,9 @@ export function LocationFields({ value, onChange }: SearchFieldProps) {
             aria-label="Startort"
             placeholder="Stadt suchen"
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
           />
           <ComboboxContent className="search-popover">
             <ComboboxEmpty>Keine Stadt gefunden.</ComboboxEmpty>
