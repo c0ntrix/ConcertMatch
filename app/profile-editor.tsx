@@ -162,7 +162,9 @@ export default function ProfileEditor({
         <div className="artist-field-heading">
           <label htmlFor={artistId}>Lieblingskünstler</label>
           <span className="field-hint" id={artistHintId}>
-            3–5 sind ein guter Anfang
+            {value.artists.length
+              ? `${value.artists.length} von 50 ausgewählt`
+              : "3–5 sind ein guter Anfang"}
           </span>
         </div>
         <Combobox
