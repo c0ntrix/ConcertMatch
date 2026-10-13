@@ -1454,7 +1454,7 @@ function ConcertRow({
       </div>
       <div className="concert-body">
         <div className="concert-meta">
-          <span>{dateLabel}</span>
+          <time dateTime={c.date}>{dateLabel}</time>
           {c.time && <span>{c.time.slice(0, 5)} Uhr</span>}
           {(c.status === "postponed" || c.status === "rescheduled") && (
             <span className="concert-status">
@@ -1608,8 +1608,12 @@ function ConcertRow({
           </p>
           <div className="detail-actions">
             <TicketLinks concert={c} detail />
-            <button className="text-link" onClick={() => calendarFile(c)}>
-              <CalendarPlus size={16} /> Im Kalender merken
+            <button
+              className="text-link"
+              aria-label={`${c.title} am ${dateLabel} im Kalender merken`}
+              onClick={() => calendarFile(c)}
+            >
+              <CalendarPlus size={16} aria-hidden="true" /> Im Kalender merken
             </button>
           </div>
           {saved && group.members.length > 1 && (
